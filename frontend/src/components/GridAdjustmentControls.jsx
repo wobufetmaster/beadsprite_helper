@@ -140,14 +140,25 @@ export default function GridAdjustmentControls() {
   const handleReset = () => {
     if (!gridInfo) return;
 
+    console.log('Reset clicked. Current values:', { cellWidth, cellHeight, offsetX, offsetY });
+    console.log('Resetting to gridInfo:', {
+      cell_width: gridInfo.cell_width,
+      cell_height: gridInfo.cell_height,
+      offset_x: gridInfo.offset_x,
+      offset_y: gridInfo.offset_y
+    });
+
     // Reset to detected grid values
     setCellWidth(gridInfo.cell_width);
     setCellHeight(gridInfo.cell_height);
     setOffsetX(gridInfo.offset_x || 0);
     setOffsetY(gridInfo.offset_y || 0);
 
-    // Force re-render of inputs by changing key
-    setResetKey(prev => prev + 1);
+    // Force re-render of inputs by changing key (use setTimeout to ensure state updates first)
+    setTimeout(() => {
+      setResetKey(prev => prev + 1);
+      console.log('ResetKey incremented');
+    }, 0);
   };
 
   const gridCols = Math.floor((uploadedImage.width - offsetX) / cellWidth);
