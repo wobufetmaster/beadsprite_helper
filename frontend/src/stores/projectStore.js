@@ -13,6 +13,9 @@ const useProjectStore = create((set) => ({
   // Uploaded image info
   uploadedImage: null, // { preview, width, height, format }
 
+  // Detected grid info
+  gridInfo: null, // { cell_width, cell_height, grid_cols, grid_rows, confidence }
+
   // Parsed pixel grid
   parsedPixels: null, // { width, height, grid: [[{r,g,b},...]] }
 
@@ -67,6 +70,7 @@ const useProjectStore = create((set) => ({
         },
         originalImage: file,
         parsedPixels: data.pixels,
+        gridInfo: data.grid,
       });
 
       return data;
@@ -101,6 +105,7 @@ const useProjectStore = create((set) => ({
       projectName: 'Untitled Project',
       originalImage: null,
       uploadedImage: null,
+      gridInfo: null,
       parsedPixels: null,
       colorMapping: {},
       settings: {
