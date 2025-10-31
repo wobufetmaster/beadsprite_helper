@@ -43,15 +43,11 @@ export default function ColorPalette() {
     const colors = Array.from(colorSet);
     setUniqueColors(colors);
 
-    // Auto-match colors if we don't have mappings yet
-    if (colors.length > 0 && Object.keys(colorMapping).length === 0 && beadColors.length > 0) {
+    // Auto-match colors if we don't have matches yet
+    if (colors.length > 0 && Object.keys(colorMatches).length === 0 && beadColors.length > 0) {
       matchColors(colors);
     }
-    // Rebuild colorMatches from colorMapping if we have mappings but no matches (e.g., after page reload)
-    else if (colors.length > 0 && Object.keys(colorMapping).length > 0 && Object.keys(colorMatches).length === 0 && beadColors.length > 0) {
-      rebuildColorMatches();
-    }
-  }, [parsedPixels, beadColors, colorMapping]);
+  }, [parsedPixels, beadColors]);
 
   // Rebuild colorMatches from existing colorMapping (for page reload)
   const rebuildColorMatches = () => {

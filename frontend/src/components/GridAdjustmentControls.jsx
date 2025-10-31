@@ -9,7 +9,7 @@ export default function GridAdjustmentControls() {
     processImage: state.processImage
   }));
 
-  const [isAdjusting, setIsAdjusting] = useState(false);
+  const [isAdjusting, setIsAdjusting] = useState(true);
   const [cellWidth, setCellWidth] = useState(gridInfo?.cell_width || 16);
   const [cellHeight, setCellHeight] = useState(gridInfo?.cell_height || 16);
   const [offsetX, setOffsetX] = useState(0);
