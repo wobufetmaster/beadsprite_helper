@@ -1,16 +1,10 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from utils.logging_config import setup_logging
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-    ]
-)
-
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Beadsprite Helper API")
@@ -24,6 +18,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Beadsprite Helper API starting up")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("🛑 Beadsprite Helper API shutting down")
+
 @app.get("/")
 async def root():
     logger.info("Root endpoint accessed")
@@ -31,4 +33,5 @@ async def root():
 
 @app.get("/health")
 async def health():
+    logger.debug("Health check endpoint accessed")
     return {"status": "healthy"}
