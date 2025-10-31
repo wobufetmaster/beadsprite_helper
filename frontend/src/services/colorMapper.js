@@ -1,4 +1,4 @@
-import { hexToLab, calculateColorDistance } from '../utils/colorUtils';
+import { rgbToLab, hexToLab, calculateColorDistance } from '../utils/colorUtils';
 import { PERLER_COLORS } from '../data/perlerColors';
 
 /**
@@ -8,7 +8,7 @@ import { PERLER_COLORS } from '../data/perlerColors';
  */
 function findClosestBead(rgbPixel) {
   // Convert pixel to LAB for accurate color distance
-  const targetLab = hexToLab(`rgb(${rgbPixel.r}, ${rgbPixel.g}, ${rgbPixel.b})`);
+  const targetLab = rgbToLab(rgbPixel.r, rgbPixel.g, rgbPixel.b);
 
   let closest = null;
   let minDistance = Infinity;
