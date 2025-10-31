@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import useInventoryStore from '../stores/inventoryStore';
 import { PERLER_COLORS } from '../data/perlerColors';
-import { rgbToLab, hexToLab, calculateColorDistance } from '../utils/colorUtils';
+import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function ColorPalette() {
   const { parsedPixels, colorMapping, updateColorMapping, settings } = useProjectStore(state => ({
@@ -83,14 +83,14 @@ export default function ColorPalette() {
       const matches = {};
 
       colors.forEach(imageColorHex => {
-        // Find closest bead for this image color
-        const imageLab = hexToLab(imageColorHex);
+        // Find closest bead for this image color using RGB distance
+        const imageRgb = hexToRgb(imageColorHex);
         let closestBead = null;
         let minDistance = Infinity;
 
         for (const bead of availableBeads) {
-          const beadLab = hexToLab(bead.hex);
-          const distance = calculateColorDistance(imageLab, beadLab);
+          const beadRgb = hexToRgb(bead.hex);
+          const distance = calculateRgbDistance(imageRgb, beadRgb);
 
           if (distance < minDistance) {
             minDistance = distance;
