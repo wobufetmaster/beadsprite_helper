@@ -90,12 +90,11 @@ export default function PixelGridDisplay() {
       }
 
       if (closestBead) {
-        // Save to history
-        const previousMapping = colorMapping[originalHex];
-        setMappingHistory(prev => [...prev, { hex: originalHex, previousBeadId: previousMapping }]);
-
-        // Update to auto-matched color
+        // Update to auto-matched color (DON'T add to history - reset is not undoable)
         updateColorMapping(originalHex, closestBead.id);
+
+        // Clear the selection after reset
+        setSelectedCell(null);
       }
     } catch (error) {
       console.error('Failed to reset color:', error);
