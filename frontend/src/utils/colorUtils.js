@@ -1,4 +1,7 @@
-import { lab, rgb, differenceCiede2000 } from 'culori';
+import { lab, rgb, converter, differenceCiede2000 } from 'culori';
+
+// Create a converter from RGB to LAB
+const rgbToLabConverter = converter('lab');
 
 /**
  * Convert RGB values (0-255) to LAB color space
@@ -9,7 +12,8 @@ import { lab, rgb, differenceCiede2000 } from 'culori';
  */
 export function rgbToLab(r, g, b) {
   // culori expects RGB in 0-1 range
-  return lab({ mode: 'rgb', r: r / 255, g: g / 255, b: b / 255 });
+  const rgbColor = { mode: 'rgb', r: r / 255, g: g / 255, b: b / 255 };
+  return rgbToLabConverter(rgbColor);
 }
 
 /**
@@ -18,7 +22,7 @@ export function rgbToLab(r, g, b) {
  * @returns {object} LAB color object
  */
 export function hexToLab(hexColor) {
-  return lab(hexColor);
+  return rgbToLabConverter(hexColor);
 }
 
 /**
