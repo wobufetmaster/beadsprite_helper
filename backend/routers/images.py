@@ -41,13 +41,13 @@ async def upload_image(file: UploadFile = File(...)):
         if len(contents) > 10 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="Image file too large (max 10MB)")
 
-        # Check dimensions (max 200x200 for MVP)
+        # Check dimensions (max 500x500 - reasonable for beadsprite projects)
         width, height = image.size
-        if width > 200 or height > 200:
+        if width > 500 or height > 500:
             logger.warning(f"Image too large: {width}x{height}")
             raise HTTPException(
                 status_code=400,
-                detail=f"Image too large ({width}x{height}). Maximum 200x200 pixels."
+                detail=f"Image too large ({width}x{height}). Maximum 500x500 pixels."
             )
 
         logger.info(f"Image uploaded: {width}x{height}, format: {image.format}")
