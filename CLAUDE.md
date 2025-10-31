@@ -205,3 +205,51 @@ Remaining tasks from original plan (`docs/plans/2025-10-31-beadsprite-mvp-contin
 - **Implementation Plan (Tasks 1-6):** `docs/plans/2025-10-30-beadsprite-helper-implementation.md`
 - **Continuation Plan (Tasks 7-10):** `docs/plans/2025-10-31-beadsprite-mvp-continuation.md`
 - **Original Requirements:** `instructions.md`
+
+---
+
+## Browser-Only Refactor (2025-10-31)
+
+**Status:** Complete
+**Branch:** master
+
+### Changes
+
+- **Removed:** Entire Python backend (FastAPI, routers, services)
+- **Added:** culori library for color science
+- **Refactored:** Image processing now uses Canvas API
+- **Refactored:** Color mapping happens client-side
+- **Benefit:** Zero backend costs, static hosting, faster development
+
+### How to Run
+
+```bash
+# Development
+cd frontend && npm run dev  # http://localhost:5173
+
+# Production test
+./serve-local.sh  # http://localhost:5800
+```
+
+### Tech Stack
+
+- **Frontend:** React 18, Vite, Tailwind CSS, Zustand
+- **Color Science:** culori (LAB, Delta E)
+- **Image Processing:** Canvas API
+- **Deployment:** Static hosting (Vercel, Netlify, GitHub Pages)
+
+### Files Changed
+
+- Added: `frontend/src/data/perlerColors.js`
+- Added: `frontend/src/services/imageProcessor.js`
+- Added: `serve-local.sh`
+- Modified: `frontend/src/utils/colorUtils.js`
+- Modified: `frontend/src/services/colorMapper.js`
+- Modified: `frontend/src/stores/projectStore.js`
+- Modified: `frontend/vite.config.js`
+- Modified: `frontend/src/App.jsx`
+- Modified: `frontend/src/components/PixelGridDisplay.jsx`
+- Modified: `frontend/src/components/ColorPalette.jsx`
+- Deleted: `frontend/src/services/api.js`
+- Deleted: `backend/` (entire directory)
+- Deleted: `start-dev.sh`
