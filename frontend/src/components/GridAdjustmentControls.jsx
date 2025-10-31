@@ -12,8 +12,8 @@ export default function GridAdjustmentControls() {
   const [isAdjusting, setIsAdjusting] = useState(true);
   const [cellWidth, setCellWidth] = useState(gridInfo?.cell_width || 16);
   const [cellHeight, setCellHeight] = useState(gridInfo?.cell_height || 16);
-  const [offsetX, setOffsetX] = useState(0);
-  const [offsetY, setOffsetY] = useState(0);
+  const [offsetX, setOffsetX] = useState(gridInfo?.offset_x || 0);
+  const [offsetY, setOffsetY] = useState(gridInfo?.offset_y || 0);
   const [isProcessing, setIsProcessing] = useState(false);
   const canvasRef = useRef(null);
 
@@ -22,6 +22,8 @@ export default function GridAdjustmentControls() {
     if (gridInfo) {
       setCellWidth(gridInfo.cell_width);
       setCellHeight(gridInfo.cell_height);
+      setOffsetX(gridInfo.offset_x || 0);
+      setOffsetY(gridInfo.offset_y || 0);
     }
   }, [gridInfo]);
 
@@ -135,10 +137,13 @@ export default function GridAdjustmentControls() {
   };
 
   const handleReset = () => {
+    if (!gridInfo) return;
+
+    // Reset to detected grid values
     setCellWidth(gridInfo.cell_width);
     setCellHeight(gridInfo.cell_height);
-    setOffsetX(0);
-    setOffsetY(0);
+    setOffsetX(gridInfo.offset_x || 0);
+    setOffsetY(gridInfo.offset_y || 0);
   };
 
   const gridCols = Math.floor((uploadedImage.width - offsetX) / cellWidth);

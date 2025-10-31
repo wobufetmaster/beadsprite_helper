@@ -91,6 +91,8 @@ const useProjectStore = create(
           detected_grid_size: gridSize,
           cell_width: gridSize,
           cell_height: gridSize,
+          offset_x: 0,
+          offset_y: 0,
           grid_cols: gridCols,
           grid_rows: gridRows,
           confidence: gridSize > 1 ? 95 : 0,
