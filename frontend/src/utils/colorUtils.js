@@ -1,4 +1,4 @@
-import { lab, rgb, differenceDeltaE } from 'culori';
+import { lab, rgb, differenceCiede2000 } from 'culori';
 
 /**
  * Convert RGB values (0-255) to LAB color space
@@ -28,7 +28,7 @@ export function hexToLab(hexColor) {
  * @returns {number} Distance value (0 = identical)
  */
 export function calculateColorDistance(color1, color2) {
-  return differenceDeltaE(color1, color2);
+  return differenceCiede2000(color1, color2);
 }
 
 /**
