@@ -63,6 +63,21 @@ const useProjectStore = create(
         console.warn(dimCheck.message);
         // Detect grid size for large images
         gridSize = detectGridSize(img);
+
+        // Force downsampling if image is very large and no grid detected
+        if (gridSize === 1) {
+          const pixels = img.width * img.height;
+          if (pixels > 200 * 200) {
+            // Estimate a reasonable grid size to get under 200x200
+            const targetSize = 150;
+            gridSize = Math.max(
+              Math.ceil(img.width / targetSize),
+              Math.ceil(img.height / targetSize)
+            );
+            console.log(`⚠ Forcing grid size ${gridSize} to reduce from ${img.width}x${img.height} to ~${Math.floor(img.width/gridSize)}x${Math.floor(img.height/gridSize)}`);
+          }
+        }
+
         gridInfo = {
           detected_grid_size: gridSize,
           original_width: img.width,

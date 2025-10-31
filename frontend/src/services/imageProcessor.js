@@ -107,6 +107,8 @@ export function validateImageDimensions(img) {
  * @returns {number} Detected grid size (pixels per cell)
  */
 export function detectGridSize(img) {
+  console.log('Starting grid detection for image:', img.width, 'x', img.height);
+
   const canvas = document.createElement('canvas');
   canvas.width = Math.min(img.width, 400);
   canvas.height = Math.min(img.height, 400);
@@ -115,18 +117,19 @@ export function detectGridSize(img) {
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
 
-  // Try common grid sizes
-  const gridSizesToTry = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 32];
+  // Try common grid sizes (starting with larger ones for screenshots)
+  const gridSizesToTry = [32, 24, 20, 16, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1];
 
   for (const gridSize of gridSizesToTry) {
+    console.log('Trying grid size:', gridSize);
     if (isValidGridSize(pixels, canvas.width, canvas.height, gridSize)) {
-      console.log('Detected grid size:', gridSize);
+      console.log('✓ Detected grid size:', gridSize);
       return gridSize;
     }
   }
 
   // Default to 1 (no grid)
-  console.log('No grid detected, using size 1');
+  console.log('⚠ No grid detected, using size 1 (will be slow for large images)');
   return 1;
 }
 
