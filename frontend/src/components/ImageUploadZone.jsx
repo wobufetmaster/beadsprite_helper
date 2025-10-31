@@ -112,7 +112,7 @@ export default function ImageUploadZone() {
                 Drag and drop your pixel art image here, or click to browse
               </p>
               <p className="text-xs text-gray-500">
-                Maximum size: 500×500 pixels
+                Maximum size: 2000×2000 pixels
               </p>
             </>
           )}
