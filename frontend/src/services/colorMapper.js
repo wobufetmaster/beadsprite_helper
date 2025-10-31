@@ -1,4 +1,4 @@
-import { calculateLabDistance, rgbToLab } from '../utils/colorUtils';
+import { calculateLabDistance, rgbToLab, hexToRgb } from '../utils/colorUtils';
 
 /**
  * Map image pixels to closest Perler bead colors
@@ -55,22 +55,25 @@ function findClosestColor(pixel, perlerColors, mode) {
   const pixelLab = mode === 'lab' ? rgbToLab(pixel.r, pixel.g, pixel.b) : null;
 
   for (const perlerColor of perlerColors) {
+    // Convert hex to RGB if not already available
+    const perlerRgb = perlerColor.rgb || hexToRgb(perlerColor.hex);
+
     let distance;
 
     if (mode === 'lab') {
       // Use LAB color space for perceptually accurate matching
       const perlerLab = perlerColor.lab || rgbToLab(
-        perlerColor.rgb.r,
-        perlerColor.rgb.g,
-        perlerColor.rgb.b
+        perlerRgb.r,
+        perlerRgb.g,
+        perlerRgb.b
       );
       distance = calculateLabDistance(pixelLab, perlerLab);
     } else {
       // Use RGB Euclidean distance
       distance = Math.sqrt(
-        Math.pow(pixel.r - perlerColor.rgb.r, 2) +
-        Math.pow(pixel.g - perlerColor.rgb.g, 2) +
-        Math.pow(pixel.b - perlerColor.rgb.b, 2)
+        Math.pow(pixel.r - perlerRgb.r, 2) +
+        Math.pow(pixel.g - perlerRgb.g, 2) +
+        Math.pow(pixel.b - perlerRgb.b, 2)
       );
     }
 
