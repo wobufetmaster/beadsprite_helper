@@ -15,6 +15,7 @@ export default function GridAdjustmentControls() {
   const [offsetX, setOffsetX] = useState(gridInfo?.offset_x || 0);
   const [offsetY, setOffsetY] = useState(gridInfo?.offset_y || 0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
   const canvasRef = useRef(null);
 
   // Update local state when gridInfo changes
@@ -144,6 +145,9 @@ export default function GridAdjustmentControls() {
     setCellHeight(gridInfo.cell_height);
     setOffsetX(gridInfo.offset_x || 0);
     setOffsetY(gridInfo.offset_y || 0);
+
+    // Force re-render of inputs by changing key
+    setResetKey(prev => prev + 1);
   };
 
   const gridCols = Math.floor((uploadedImage.width - offsetX) / cellWidth);
@@ -191,6 +195,7 @@ export default function GridAdjustmentControls() {
                   Cell Width: {cellWidth}px
                 </label>
                 <input
+                  key={`cellWidth-${resetKey}`}
                   type="range"
                   min={1}
                   max={100}
@@ -204,6 +209,7 @@ export default function GridAdjustmentControls() {
                   Cell Height: {cellHeight}px
                 </label>
                 <input
+                  key={`cellHeight-${resetKey}`}
                   type="range"
                   min={1}
                   max={100}
@@ -221,6 +227,7 @@ export default function GridAdjustmentControls() {
                   Offset X: {offsetX}px
                 </label>
                 <input
+                  key={`offsetX-${resetKey}`}
                   type="range"
                   min={0}
                   max={cellWidth * 2}
@@ -234,6 +241,7 @@ export default function GridAdjustmentControls() {
                   Offset Y: {offsetY}px
                 </label>
                 <input
+                  key={`offsetY-${resetKey}`}
                   type="range"
                   min={0}
                   max={cellHeight * 2}
