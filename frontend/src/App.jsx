@@ -3,10 +3,13 @@ import { colorApi } from './services/api';
 import useProjectStore from './stores/projectStore';
 import useInventoryStore from './stores/inventoryStore';
 import useUIStore from './stores/uiStore';
+import ImageUploadZone from './components/ImageUploadZone';
+import ImageDisplay from './components/ImageDisplay';
 
 function App() {
   const [perlerColors, setPerlerColors] = useState([]);
   const { setError, setLoading } = useUIStore();
+  const uploadedImage = useProjectStore(state => state.uploadedImage);
 
   useEffect(() => {
     // Load Perler colors on mount
@@ -34,13 +37,24 @@ function App() {
           <h1 className="text-3xl font-bold text-gray-900">Beadsprite Helper</h1>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 px-4">
+      <main className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+        {/* Image Upload Section */}
         <div className="bg-white shadow rounded-lg p-6">
-          <p className="text-gray-600">
+          <h2 className="text-xl font-semibold mb-4">Upload Pixel Art</h2>
+          <ImageUploadZone />
+        </div>
+
+        {/* Image Display Section */}
+        {uploadedImage && <ImageDisplay />}
+
+        {/* Color Info Section */}
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-semibold mb-4">Available Bead Colors</h2>
+          <p className="text-gray-600 mb-4">
             Loaded {perlerColors.length} Perler bead colors
           </p>
           {perlerColors.length > 0 && (
-            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
               {perlerColors.slice(0, 14).map((color) => (
                 <div
                   key={color.id}

@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import api from '../services/api';
+import { useUIStore } from './uiStore';
 
 const useProjectStore = create((set) => ({
   // Project metadata
@@ -7,6 +9,9 @@ const useProjectStore = create((set) => ({
 
   // Original uploaded image
   originalImage: null,
+
+  // Uploaded image info
+  uploadedImage: null, // { preview, width, height, format }
 
   // Parsed pixel grid
   parsedPixels: null, // { width, height, grid: [[{r,g,b},...]] }
@@ -28,6 +33,53 @@ const useProjectStore = create((set) => ({
 
   setParsedPixels: (pixels) => set({ parsedPixels: pixels }),
 
+  // Upload image to backend
+  uploadImage: async (file) => {
+    const { setLoading, setError, clearError } = useUIStore.getState();
+
+    try {
+      setLoading(true);
+      clearError();
+
+      // Create form data
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Upload to backend
+      const response = await api.post('/api/images/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const data = response.data;
+
+      // Create preview URL
+      const preview = URL.createObjectURL(file);
+
+      // Update store
+      set({
+        uploadedImage: {
+          preview,
+          width: data.width,
+          height: data.height,
+          format: data.format,
+        },
+        originalImage: file,
+        parsedPixels: data.pixels,
+      });
+
+      return data;
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to upload image';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  },
+
   setColorMapping: (mapping) => set({ colorMapping: mapping }),
 
   updateColorMapping: (imageColor, beadColorId) =>
@@ -48,6 +100,7 @@ const useProjectStore = create((set) => ({
     set({
       projectName: 'Untitled Project',
       originalImage: null,
+      uploadedImage: null,
       parsedPixels: null,
       colorMapping: {},
       settings: {
@@ -79,4 +132,5 @@ const useProjectStore = create((set) => ({
   }),
 }));
 
+export { useProjectStore };
 export default useProjectStore;

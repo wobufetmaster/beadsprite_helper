@@ -50,4 +50,5 @@ const useUIStore = create((set) => ({
   resetView: () => set({ zoom: 1.0, pan: { x: 0, y: 0 } }),
 }));
 
+export { useUIStore };
 export default useUIStore;
