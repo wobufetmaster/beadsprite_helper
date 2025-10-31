@@ -7,20 +7,45 @@ import { PERLER_COLORS } from '../data/perlerColors';
  * @returns {object} Closest Perler color object
  */
 function findClosestBead(rgbPixel) {
+  if (!PERLER_COLORS || PERLER_COLORS.length === 0) {
+    console.error('PERLER_COLORS is empty or undefined');
+    throw new Error('No Perler colors available');
+  }
+
   // Convert pixel to LAB for accurate color distance
   const targetLab = rgbToLab(rgbPixel.r, rgbPixel.g, rgbPixel.b);
+
+  if (!targetLab) {
+    console.error('Failed to convert RGB to LAB:', rgbPixel);
+    throw new Error('Color conversion failed');
+  }
 
   let closest = null;
   let minDistance = Infinity;
 
   for (const bead of PERLER_COLORS) {
-    const beadLab = hexToLab(bead.hex);
-    const distance = calculateColorDistance(targetLab, beadLab);
+    try {
+      const beadLab = hexToLab(bead.hex);
+      if (!beadLab) {
+        console.warn('Failed to convert bead color to LAB:', bead);
+        continue;
+      }
 
-    if (distance < minDistance) {
-      minDistance = distance;
-      closest = bead;
+      const distance = calculateColorDistance(targetLab, beadLab);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closest = bead;
+      }
+    } catch (err) {
+      console.warn('Error processing bead color:', bead, err);
+      continue;
     }
+  }
+
+  if (!closest) {
+    console.error('No matching bead found for pixel:', rgbPixel);
+    throw new Error('Failed to find matching bead color');
   }
 
   return closest;

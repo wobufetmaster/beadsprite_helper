@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import useInventoryStore from '../stores/inventoryStore';
 import { PERLER_COLORS } from '../data/perlerColors';
+import { rgbToLab, hexToLab, calculateColorDistance } from '../utils/colorUtils';
 
 export default function ColorPalette() {
   const { parsedPixels, colorMapping, updateColorMapping, settings } = useProjectStore(state => ({
@@ -71,35 +72,47 @@ export default function ColorPalette() {
     setColorMatches(matches);
   };
 
-  // Fetch and match colors
-  const matchColors = async (colors) => {
+  // Match colors locally (browser-only)
+  const matchColors = (colors) => {
     if (colors.length === 0 || beadColors.length === 0) return;
 
     setIsLoading(true);
     try {
       // Get available bead colors (filter by inventory if user has owned colors set)
-      const availableColorIds = ownedColors.length > 0
-        ? ownedColors.map(c => c.id)
-        : []; // Empty array = use all colors
-
-      const response = await colorApi.matchColors(
-        colors,
-        settings.colorMatchMode || 'lab',
-        availableColorIds
-      );
+      const availableBeads = ownedColors.length > 0
+        ? beadColors.filter(bead => ownedColors.some(owned => owned.id === bead.id))
+        : beadColors;
 
       // Build matches object and update color mapping
       const matches = {};
-      response.data.matches.forEach(match => {
-        matches[match.image_color] = {
-          beadColorId: match.bead_color_id,
-          beadColorHex: match.bead_color_hex,
-          beadColorName: match.bead_color_name,
-          distance: match.distance
-        };
 
-        // Update the store's color mapping
-        updateColorMapping(match.image_color, match.bead_color_id);
+      colors.forEach(imageColorHex => {
+        // Find closest bead for this image color
+        const imageLab = hexToLab(imageColorHex);
+        let closestBead = null;
+        let minDistance = Infinity;
+
+        for (const bead of availableBeads) {
+          const beadLab = hexToLab(bead.hex);
+          const distance = calculateColorDistance(imageLab, beadLab);
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestBead = bead;
+          }
+        }
+
+        if (closestBead) {
+          matches[imageColorHex] = {
+            beadColorId: closestBead.id,
+            beadColorHex: closestBead.hex,
+            beadColorName: closestBead.name,
+            distance: minDistance
+          };
+
+          // Update the store's color mapping
+          updateColorMapping(imageColorHex, closestBead.id);
+        }
       });
 
       setColorMatches(matches);
