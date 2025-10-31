@@ -18,14 +18,20 @@ export default function ImageDisplay() {
 
         <div className="space-y-4">
           {/* Image preview */}
-          <div className="flex justify-center">
-            <img
-              src={uploadedImage.preview}
-              alt="Uploaded pixel art"
-              className="max-w-full h-auto border border-gray-600 rounded"
-              style={{ imageRendering: 'pixelated' }}
-            />
-          </div>
+          {uploadedImage.preview ? (
+            <div className="flex justify-center">
+              <img
+                src={uploadedImage.preview}
+                alt="Uploaded pixel art"
+                className="max-w-full h-auto border border-gray-600 rounded"
+                style={{ imageRendering: 'pixelated' }}
+              />
+            </div>
+          ) : (
+            <div className="flex justify-center p-8 bg-gray-700/50 rounded border border-gray-600">
+              <p className="text-sm text-gray-400">Image preview not available after page reload. Color mapping and pixel grid are preserved.</p>
+            </div>
+          )}
 
           {/* Image info */}
           <div className="grid grid-cols-2 gap-4 text-sm">
@@ -75,7 +81,15 @@ export default function ImageDisplay() {
                     {gridInfo.cell_width} × {gridInfo.cell_height}px
                   </span>
                 </div>
-                <div className="col-span-2">
+                {(gridInfo.offset_x > 0 || gridInfo.offset_y > 0) && (
+                  <div>
+                    <span className="text-gray-400">Offset:</span>
+                    <span className="ml-2 text-gray-200 font-medium">
+                      {gridInfo.offset_x} × {gridInfo.offset_y}px
+                    </span>
+                  </div>
+                )}
+                <div className={gridInfo.offset_x > 0 || gridInfo.offset_y > 0 ? 'col-span-1' : 'col-span-2'}>
                   <span className="text-gray-400">Confidence:</span>
                   <span className="ml-2 text-gray-200 font-medium">
                     {(gridInfo.confidence * 100).toFixed(0)}%

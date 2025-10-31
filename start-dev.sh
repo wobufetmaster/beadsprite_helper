@@ -29,6 +29,27 @@ fi
 # Create logs directory
 mkdir -p backend/logs
 
+# Kill existing servers if running
+echo "🔄 Checking for existing servers..."
+BACKEND_PORT=8000
+FRONTEND_PORT=5800
+
+# Kill process on backend port
+BACKEND_EXISTING=$(lsof -ti:$BACKEND_PORT 2>/dev/null || true)
+if [ ! -z "$BACKEND_EXISTING" ]; then
+    echo "   Stopping existing backend server (PID: $BACKEND_EXISTING)..."
+    kill -9 $BACKEND_EXISTING 2>/dev/null || true
+    sleep 1
+fi
+
+# Kill process on frontend port
+FRONTEND_EXISTING=$(lsof -ti:$FRONTEND_PORT 2>/dev/null || true)
+if [ ! -z "$FRONTEND_EXISTING" ]; then
+    echo "   Stopping existing frontend server (PID: $FRONTEND_EXISTING)..."
+    kill -9 $FRONTEND_EXISTING 2>/dev/null || true
+    sleep 1
+fi
+
 echo "✅ Dependencies installed"
 echo ""
 echo "🎨 Frontend: http://localhost:5800"

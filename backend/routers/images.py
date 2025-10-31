@@ -1,7 +1,7 @@
 import logging
 import io
-from typing import List, Dict
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from typing import List, Dict, Optional
+from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 from pydantic import BaseModel
 from PIL import Image
 import base64
@@ -33,7 +33,13 @@ class ImageUploadResponse(BaseModel):
     message: str
 
 @router.post("/upload", response_model=ImageUploadResponse)
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(
+    file: UploadFile = File(...),
+    manual_cell_width: Optional[int] = Form(None),
+    manual_cell_height: Optional[int] = Form(None),
+    manual_offset_x: Optional[int] = Form(None),
+    manual_offset_y: Optional[int] = Form(None)
+):
     """Upload and validate an image file."""
     try:
         # Read file contents
@@ -59,19 +65,48 @@ async def upload_image(file: UploadFile = File(...)):
                 detail=f"Image too large ({width}x{height}). Maximum 2000x2000 pixels."
             )
 
-        logger.info(f"Image uploaded: {width}x{height}, format: {image.format}")
+        # Save format before any image manipulation (crop can lose this)
+        image_format = image.format or "PNG"
 
-        # Extract pixels
-        pixel_data = extract_pixels_simple(image)
+        logger.info(f"Image uploaded: {width}x{height}, format: {image_format}")
 
-        # Attempt grid detection
-        grid_info = detect_grid(image)
+        # Check if manual grid parameters provided
+        if manual_cell_width and manual_cell_height:
+            # Use manual grid parameters
+            grid_info = {
+                'cell_width': manual_cell_width,
+                'cell_height': manual_cell_height,
+                'grid_cols': (width - (manual_offset_x or 0)) // manual_cell_width,
+                'grid_rows': (height - (manual_offset_y or 0)) // manual_cell_height,
+                'confidence': 1.0  # Manual = 100% confidence
+            }
+
+            # Apply offset if provided
+            if manual_offset_x or manual_offset_y:
+                offset_x = manual_offset_x or 0
+                offset_y = manual_offset_y or 0
+                image = image.crop((offset_x, offset_y, width, height))
+                logger.info(f"Applied offset: ({offset_x}, {offset_y})")
+
+            logger.info(f"Using manual grid: {grid_info['grid_cols']}x{grid_info['grid_rows']} cells of {manual_cell_width}x{manual_cell_height}px")
+        else:
+            # Attempt automatic grid detection
+            grid_info = detect_grid(image)
+
+        # Extract pixels - use grid-based extraction if grid detected
+        if grid_info:
+            from services.pixel_extraction import extract_pixels_from_grid
+            pixel_data = extract_pixels_from_grid(image, grid_info)
+            logger.info(f"Using grid-based extraction: {pixel_data['width']}x{pixel_data['height']} cells")
+        else:
+            pixel_data = extract_pixels_simple(image)
+            logger.info(f"Using simple extraction: {pixel_data['width']}x{pixel_data['height']} pixels")
 
         return ImageUploadResponse(
             success=True,
             width=width,
             height=height,
-            format=image.format,
+            format=image_format,
             pixels=PixelGrid(**pixel_data),
             grid=GridInfo(**grid_info) if grid_info else None,
             message=f"Image uploaded successfully: {width}x{height}"

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import { useUIStore } from '../stores/uiStore';
 
@@ -11,6 +11,52 @@ export default function ImageUploadZone() {
     isLoading: state.isLoading,
     error: state.error
   }));
+
+  const handleFile = useCallback(async (file) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      useUIStore.getState().setError('Please select an image file');
+      return;
+    }
+
+    // Upload the image
+    await uploadImage(file);
+  }, [uploadImage]);
+
+  // Handle paste from clipboard
+  useEffect(() => {
+    const handlePaste = async (e) => {
+      // Only handle paste if we're not in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const blob = item.getAsFile();
+
+          if (blob) {
+            // Convert blob to File with a name
+            const file = new File([blob], `pasted-image-${Date.now()}.png`, {
+              type: blob.type
+            });
+
+            await handleFile(file);
+          }
+          break;
+        }
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, [handleFile]);
 
   const handleDragEnter = (e) => {
     e.preventDefault();
@@ -45,17 +91,6 @@ export default function ImageUploadZone() {
     if (files && files.length > 0) {
       handleFile(files[0]);
     }
-  };
-
-  const handleFile = async (file) => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      useUIStore.getState().setError('Please select an image file');
-      return;
-    }
-
-    // Upload the image
-    await uploadImage(file);
   };
 
   const handleClick = () => {
@@ -109,7 +144,10 @@ export default function ImageUploadZone() {
           ) : (
             <>
               <p className="text-sm text-gray-300">
-                Drag and drop your pixel art image here, or click to browse
+                Drag and drop, paste, or click to browse
+              </p>
+              <p className="text-xs text-gray-500">
+                Press Cmd+V (Mac) or Ctrl+V (Windows) to paste from clipboard
               </p>
               <p className="text-xs text-gray-500">
                 Maximum size: 2000×2000 pixels

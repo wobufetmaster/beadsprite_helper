@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { colorApi } from './services/api';
+import { PERLER_COLORS } from './data/perlerColors';
 import useProjectStore from './stores/projectStore';
 import useInventoryStore from './stores/inventoryStore';
 import useUIStore from './stores/uiStore';
 import ImageUploadZone from './components/ImageUploadZone';
 import ImageDisplay from './components/ImageDisplay';
+import GridAdjustmentControls from './components/GridAdjustmentControls';
+import PixelGridDisplay from './components/PixelGridDisplay';
 import ColorMappingDisplay from './components/ColorMappingDisplay';
-import { mapPixelsToBeads, getBeadList } from './services/colorMapper';
+import ColorPalette from './components/ColorPalette';
 
 function App() {
   const [perlerColors, setPerlerColors] = useState([]);
@@ -20,53 +22,42 @@ function App() {
     setColorMapping: state.setColorMapping
   }));
 
+  // Load Perler colors from local data on mount
   useEffect(() => {
-    // Load Perler colors on mount
-    const loadColors = async () => {
-      try {
-        setLoading(true, 'Loading Perler colors...');
-        const response = await colorApi.getPerlerColors();
-        setPerlerColors(response.data);
-        console.log('Loaded Perler colors:', response.data.length);
-      } catch (error) {
-        console.error('Failed to load Perler colors:', error);
-        setError('Failed to load Perler colors');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadColors();
+    setPerlerColors(PERLER_COLORS);
+    console.log('Loaded Perler colors:', PERLER_COLORS.length);
   }, []);
 
-  // Perform color mapping when image is uploaded and colors are loaded
+  // Calculate bead list from color mapping (mapping is done by projectStore)
   useEffect(() => {
-    if (!parsedPixels || !perlerColors || perlerColors.length === 0) {
+    if (!parsedPixels) {
+      setBeadList([]);
+      setTotalBeads(0);
       return;
     }
 
-    console.log('Performing color mapping...');
-    const { colorMapping, beadCounts } = mapPixelsToBeads(
-      parsedPixels,
-      perlerColors,
-      settings.colorMatchMode
-    );
+    const colorMapping = useProjectStore.getState().colorMapping;
+    if (!colorMapping || Object.keys(colorMapping).length === 0) {
+      return;
+    }
 
-    // Update store with mapping
-    setColorMapping(colorMapping);
+    // Convert mapping to bead list
+    const beadCounts = Object.values(colorMapping).reduce((acc, beadId) => {
+      acc[beadId] = (acc[beadId] || 0) + 1;
+      return acc;
+    }, {});
 
-    // Calculate bead list and totals
-    const list = getBeadList(beadCounts, perlerColors);
+    const list = Object.entries(beadCounts)
+      .map(([beadId, count]) => ({
+        color: PERLER_COLORS.find(c => c.id === beadId),
+        count
+      }))
+      .filter(item => item.color)
+      .sort((a, b) => b.count - a.count);
+
     setBeadList(list);
-
-    const total = Object.values(beadCounts).reduce((sum, count) => sum + count, 0);
-    setTotalBeads(total);
-
-    console.log('Color mapping complete:', {
-      uniqueColors: list.length,
-      totalBeads: total
-    });
-  }, [parsedPixels, perlerColors, settings.colorMatchMode]);
+    setTotalBeads(Object.values(beadCounts).reduce((sum, count) => sum + count, 0));
+  }, [parsedPixels]);
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -85,7 +76,16 @@ function App() {
         {/* Image Display Section */}
         {uploadedImage && <ImageDisplay />}
 
-        {/* Color Mapping Section */}
+        {/* Grid Adjustment Controls */}
+        {uploadedImage && <GridAdjustmentControls />}
+
+        {/* Pixel Grid Display Section */}
+        {parsedPixels && <PixelGridDisplay />}
+
+        {/* Color Palette - Interactive color mapping */}
+        {parsedPixels && <ColorPalette />}
+
+        {/* Color Mapping Section - Shopping list */}
         {uploadedImage && beadList.length > 0 && (
           <ColorMappingDisplay beadList={beadList} totalBeads={totalBeads} />
         )}

@@ -139,3 +139,35 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
 def rgb_to_hex(r: int, g: int, b: int) -> str:
     """Convert RGB tuple to hex color string."""
     return f"#{r:02x}{g:02x}{b:02x}"
+
+def is_neutral_color(r: int, g: int, b: int, threshold: int = 10) -> bool:
+    """
+    Check if an RGB color is neutral (grayscale).
+
+    Args:
+        r, g, b: RGB values (0-255)
+        threshold: Maximum allowed difference between R, G, B channels
+
+    Returns:
+        True if color is neutral (R≈G≈B), False otherwise
+    """
+    max_diff = max(abs(r - g), abs(g - b), abs(r - b))
+    return max_diff <= threshold
+
+def color_saturation(r: int, g: int, b: int) -> float:
+    """
+    Calculate saturation of an RGB color (0.0 = grayscale, 1.0 = fully saturated).
+
+    Uses HSV saturation formula.
+    """
+    r_norm = r / 255.0
+    g_norm = g / 255.0
+    b_norm = b / 255.0
+
+    max_val = max(r_norm, g_norm, b_norm)
+    min_val = min(r_norm, g_norm, b_norm)
+
+    if max_val == 0:
+        return 0.0
+
+    return (max_val - min_val) / max_val
