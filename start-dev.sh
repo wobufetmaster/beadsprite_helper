@@ -31,7 +31,7 @@ mkdir -p backend/logs
 
 echo "✅ Dependencies installed"
 echo ""
-echo "🎨 Frontend: http://localhost:5173"
+echo "🎨 Frontend: http://localhost:5800"
 echo "🔧 Backend:  http://localhost:8000"
 echo "📝 API Docs: http://localhost:8000/docs"
 echo ""
