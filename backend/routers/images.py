@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from PIL import Image
 import base64
 from services.pixel_extraction import extract_pixels_simple
+from services.grid_detection import detect_grid
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/images", tags=["images"])
@@ -15,12 +16,20 @@ class PixelGrid(BaseModel):
     height: int
     grid: List[List[Dict[str, int]]]
 
+class GridInfo(BaseModel):
+    cell_width: int
+    cell_height: int
+    grid_cols: int
+    grid_rows: int
+    confidence: float
+
 class ImageUploadResponse(BaseModel):
     success: bool
     width: int
     height: int
     format: str
     pixels: PixelGrid
+    grid: GridInfo | None = None
     message: str
 
 @router.post("/upload", response_model=ImageUploadResponse)
@@ -55,12 +64,16 @@ async def upload_image(file: UploadFile = File(...)):
         # Extract pixels
         pixel_data = extract_pixels_simple(image)
 
+        # Attempt grid detection
+        grid_info = detect_grid(image)
+
         return ImageUploadResponse(
             success=True,
             width=width,
             height=height,
             format=image.format,
             pixels=PixelGrid(**pixel_data),
+            grid=GridInfo(**grid_info) if grid_info else None,
             message=f"Image uploaded successfully: {width}x{height}"
         )
 
