@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from utils.logging_config import setup_logging
+from routers import colors
 
 # Configure logging
 setup_logging()
@@ -17,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(colors.router)
 
 @app.on_event("startup")
 async def startup_event():
