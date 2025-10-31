@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { loadImage, extractPixels, validateImageFile, validateImageDimensions } from '../services/imageProcessor';
+import { loadImage, extractPixels, extractPixelsWithGrid, detectGridSize, validateImageFile, validateImageDimensions } from '../services/imageProcessor';
 import { mapPixelsToBeads } from '../services/colorMapper';
 import { useUIStore } from './uiStore';
 
@@ -54,14 +54,26 @@ const useProjectStore = create(
       // Load image
       const img = await loadImage(file);
 
-      // Validate dimensions (warning only)
+      // Validate dimensions and detect grid if needed
       const dimCheck = validateImageDimensions(img);
+      let gridSize = 1;
+      let gridInfo = null;
+
       if (!dimCheck.valid) {
         console.warn(dimCheck.message);
+        // Detect grid size for large images
+        gridSize = detectGridSize(img);
+        gridInfo = {
+          detected_grid_size: gridSize,
+          original_width: img.width,
+          original_height: img.height
+        };
       }
 
-      // Extract pixels using Canvas API
-      const { width, height, grid } = extractPixels(img);
+      // Extract pixels (with grid downsampling if needed)
+      const { width, height, grid } = gridSize > 1
+        ? extractPixelsWithGrid(img, gridSize)
+        : extractPixels(img);
 
       // Map to Perler beads
       const colorMapping = mapPixelsToBeads(grid);
@@ -80,7 +92,7 @@ const useProjectStore = create(
         originalImage: file,
         parsedPixels: { width, height, grid },
         colorMapping,
-        gridInfo: null, // No automatic grid detection in browser-only version
+        gridInfo, // Grid detection results
       });
 
       return { width, height, grid };

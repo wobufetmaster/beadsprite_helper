@@ -94,9 +94,142 @@ export function validateImageDimensions(img) {
   if (img.width > maxWidth || img.height > maxHeight) {
     return {
       valid: false,
-      message: `Image dimensions (${img.width}x${img.height}) exceed maximum (${maxWidth}x${maxHeight}). Large images may be slow to process.`
+      message: `Image dimensions (${img.width}x${img.height}) exceed maximum (${maxWidth}x${maxHeight}). Grid detection will be used to downsample.`
     };
   }
 
   return { valid: true, message: '' };
+}
+
+/**
+ * Detect grid size in an image (for upscaled pixel art)
+ * @param {HTMLImageElement} img - The image
+ * @returns {number} Detected grid size (pixels per cell)
+ */
+export function detectGridSize(img) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.min(img.width, 400);
+  canvas.height = Math.min(img.height, 400);
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const pixels = imageData.data;
+
+  // Try common grid sizes
+  const gridSizesToTry = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 32];
+
+  for (const gridSize of gridSizesToTry) {
+    if (isValidGridSize(pixels, canvas.width, canvas.height, gridSize)) {
+      console.log('Detected grid size:', gridSize);
+      return gridSize;
+    }
+  }
+
+  // Default to 1 (no grid)
+  console.log('No grid detected, using size 1');
+  return 1;
+}
+
+/**
+ * Check if a grid size is valid for the image
+ * @param {Uint8ClampedArray} pixels - Image pixel data
+ * @param {number} width - Image width
+ * @param {number} height - Image height
+ * @param {number} gridSize - Grid size to test
+ * @returns {boolean} True if valid grid size
+ */
+function isValidGridSize(pixels, width, height, gridSize) {
+  if (width % gridSize !== 0 || height % gridSize !== 0) {
+    return false;
+  }
+
+  // Sample a few grid cells and check if pixels within each cell are uniform
+  const cellsToCheck = 10;
+  const cellsPerRow = Math.floor(width / gridSize);
+  const cellsPerCol = Math.floor(height / gridSize);
+
+  for (let i = 0; i < cellsToCheck; i++) {
+    const cellX = Math.floor(Math.random() * cellsPerRow);
+    const cellY = Math.floor(Math.random() * cellsPerCol);
+
+    if (!isCellUniform(pixels, width, cellX * gridSize, cellY * gridSize, gridSize)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Check if a grid cell has uniform color
+ * @param {Uint8ClampedArray} pixels - Image pixel data
+ * @param {number} width - Image width
+ * @param {number} startX - Cell start X
+ * @param {number} startY - Cell start Y
+ * @param {number} gridSize - Grid size
+ * @returns {boolean} True if cell is uniform
+ */
+function isCellUniform(pixels, width, startX, startY, gridSize) {
+  // Get first pixel color
+  const firstIdx = (startY * width + startX) * 4;
+  const r = pixels[firstIdx];
+  const g = pixels[firstIdx + 1];
+  const b = pixels[firstIdx + 2];
+
+  // Check all pixels in cell
+  for (let dy = 0; dy < gridSize; dy++) {
+    for (let dx = 0; dx < gridSize; dx++) {
+      const idx = ((startY + dy) * width + (startX + dx)) * 4;
+      const dr = Math.abs(pixels[idx] - r);
+      const dg = Math.abs(pixels[idx + 1] - g);
+      const db = Math.abs(pixels[idx + 2] - b);
+
+      // Allow small variations (5 per channel)
+      if (dr > 5 || dg > 5 || db > 5) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Extract pixels with grid downsampling
+ * @param {HTMLImageElement} img - The image
+ * @param {number} gridSize - Grid size (pixels per cell)
+ * @returns {object} {width, height, grid}
+ */
+export function extractPixelsWithGrid(img, gridSize = 1) {
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, img.width, img.height);
+  const pixels = imageData.data;
+
+  const gridWidth = Math.floor(img.width / gridSize);
+  const gridHeight = Math.floor(img.height / gridSize);
+  const grid = [];
+
+  for (let gridY = 0; gridY < gridHeight; gridY++) {
+    const row = [];
+    for (let gridX = 0; gridX < gridWidth; gridX++) {
+      // Sample center pixel of each grid cell
+      const centerX = gridX * gridSize + Math.floor(gridSize / 2);
+      const centerY = gridY * gridSize + Math.floor(gridSize / 2);
+      const i = (centerY * img.width + centerX) * 4;
+
+      row.push({
+        r: pixels[i],
+        g: pixels[i + 1],
+        b: pixels[i + 2]
+      });
+    }
+    grid.push(row);
+  }
+
+  console.log(`Downsampled from ${img.width}x${img.height} to ${gridWidth}x${gridHeight} (grid size: ${gridSize})`);
+  return { width: gridWidth, height: gridHeight, grid };
 }
