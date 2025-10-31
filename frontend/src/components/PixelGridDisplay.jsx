@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import { PERLER_COLORS } from '../data/perlerColors';
+import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function PixelGridDisplay() {
   const { parsedPixels, gridInfo, colorMapping, updateColorMapping } = useProjectStore(state => ({
@@ -67,24 +68,34 @@ export default function PixelGridDisplay() {
     }
   };
 
-  const handleReset = async () => {
+  const handleReset = () => {
     if (!selectedCell) return;
 
     const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
 
     try {
-      // Re-match this specific color to get the auto-matched bead
-      const response = await colorApi.matchColors([originalHex], 'lab', []);
+      // Re-match this specific color using RGB distance (browser-only)
+      const imageRgb = hexToRgb(originalHex);
+      let closestBead = null;
+      let minDistance = Infinity;
 
-      if (response.data.matches.length > 0) {
-        const match = response.data.matches[0];
+      for (const bead of beadColors) {
+        const beadRgb = hexToRgb(bead.hex);
+        const distance = calculateRgbDistance(imageRgb, beadRgb);
 
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestBead = bead;
+        }
+      }
+
+      if (closestBead) {
         // Save to history
         const previousMapping = colorMapping[originalHex];
         setMappingHistory(prev => [...prev, { hex: originalHex, previousBeadId: previousMapping }]);
 
         // Update to auto-matched color
-        updateColorMapping(originalHex, match.bead_color_id);
+        updateColorMapping(originalHex, closestBead.id);
       }
     } catch (error) {
       console.error('Failed to reset color:', error);

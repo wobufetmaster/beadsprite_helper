@@ -513,3 +513,6 @@ Session started at 2025-10-30 19:51:00
 [16:32:31] Found numbered menu in buffer (size=10000)
 [16:32:31] Standard menu - sending '1'
 [16:32:32] Sent raw '1'
+[16:34:50] Found numbered menu in buffer (size=10000)
+[16:34:50] Standard menu - sending '1'
+[16:34:50] Sent raw '1'
