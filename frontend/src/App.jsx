@@ -69,16 +69,16 @@ function App() {
   }, [parsedPixels, perlerColors, settings.colorMatchMode]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
+    <div className="min-h-screen bg-gray-900">
+      <header className="bg-gray-800 shadow-lg border-b border-gray-700">
         <div className="max-w-7xl mx-auto py-6 px-4">
-          <h1 className="text-3xl font-bold text-gray-900">Beadsprite Helper</h1>
+          <h1 className="text-3xl font-bold text-white">Beadsprite Helper</h1>
         </div>
       </header>
       <main className="max-w-7xl mx-auto py-6 px-4 space-y-6">
         {/* Image Upload Section */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Upload Pixel Art</h2>
+        <div className="bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-700">
+          <h2 className="text-xl font-semibold mb-4 text-white">Upload Pixel Art</h2>
           <ImageUploadZone />
         </div>
 
@@ -91,9 +91,9 @@ function App() {
         )}
 
         {/* Color Info Section */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Available Bead Colors</h2>
-          <p className="text-gray-600 mb-4">
+        <div className="bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-700">
+          <h2 className="text-xl font-semibold mb-4 text-white">Available Bead Colors</h2>
+          <p className="text-gray-400 mb-4">
             Loaded {perlerColors.length} Perler bead colors
           </p>
           {perlerColors.length > 0 && (
@@ -101,13 +101,13 @@ function App() {
               {perlerColors.slice(0, 14).map((color) => (
                 <div
                   key={color.id}
-                  className="flex flex-col items-center p-2 border rounded"
+                  className="flex flex-col items-center p-2 border border-gray-600 rounded bg-gray-700/50"
                 >
                   <div
-                    className="w-12 h-12 rounded border-2 border-gray-300"
+                    className="w-12 h-12 rounded border-2 border-gray-500"
                     style={{ backgroundColor: color.hex }}
                   />
-                  <span className="text-xs mt-1 text-center">{color.name}</span>
+                  <span className="text-xs mt-1 text-center text-gray-300">{color.name}</span>
                 </div>
               ))}
             </div>

@@ -69,8 +69,8 @@ export default function ImageUploadZone() {
           border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
           transition-colors duration-200
           ${isDragging
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
+            ? 'border-blue-400 bg-blue-900/20'
+            : 'border-gray-600 hover:border-gray-500'
           }
           ${isLoading ? 'opacity-50 pointer-events-none' : ''}
         `}
@@ -90,7 +90,7 @@ export default function ImageUploadZone() {
 
         <div className="space-y-2">
           <svg
-            className="mx-auto h-12 w-12 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-500"
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"
@@ -105,10 +105,10 @@ export default function ImageUploadZone() {
           </svg>
 
           {isLoading ? (
-            <p className="text-sm text-gray-600">Uploading...</p>
+            <p className="text-sm text-gray-400">Uploading...</p>
           ) : (
             <>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-300">
                 Drag and drop your pixel art image here, or click to browse
               </p>
               <p className="text-xs text-gray-500">
@@ -120,8 +120,8 @@ export default function ImageUploadZone() {
       </div>
 
       {error && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-md">
+          <p className="text-sm text-red-300">{error}</p>
         </div>
       )}
     </div>

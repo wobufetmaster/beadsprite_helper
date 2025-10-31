@@ -12,8 +12,8 @@ export default function ImageDisplay() {
 
   return (
     <div className="w-full space-y-4">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold mb-4">Uploaded Image</h2>
+      <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+        <h2 className="text-lg font-semibold mb-4 text-white">Uploaded Image</h2>
 
         <div className="space-y-4">
           {/* Image preview */}
@@ -21,7 +21,7 @@ export default function ImageDisplay() {
             <img
               src={uploadedImage.preview}
               alt="Uploaded pixel art"
-              className="max-w-full h-auto border border-gray-300 rounded"
+              className="max-w-full h-auto border border-gray-600 rounded"
               style={{ imageRendering: 'pixelated' }}
             />
           </div>
@@ -29,14 +29,14 @@ export default function ImageDisplay() {
           {/* Image info */}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="font-medium text-gray-700">Dimensions:</span>
-              <span className="ml-2 text-gray-600">
+              <span className="font-medium text-gray-300">Dimensions:</span>
+              <span className="ml-2 text-gray-400">
                 {uploadedImage.width} × {uploadedImage.height} pixels
               </span>
             </div>
             <div>
-              <span className="font-medium text-gray-700">Format:</span>
-              <span className="ml-2 text-gray-600">
+              <span className="font-medium text-gray-300">Format:</span>
+              <span className="ml-2 text-gray-400">
                 {uploadedImage.format}
               </span>
             </div>
@@ -45,8 +45,8 @@ export default function ImageDisplay() {
           {/* Pixel count */}
           {parsedPixels && (
             <div className="text-sm">
-              <span className="font-medium text-gray-700">Total pixels:</span>
-              <span className="ml-2 text-gray-600">
+              <span className="font-medium text-gray-300">Total pixels:</span>
+              <span className="ml-2 text-gray-400">
                 {parsedPixels.width * parsedPixels.height}
               </span>
             </div>

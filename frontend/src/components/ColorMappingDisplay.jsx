@@ -9,43 +9,43 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
 
   return (
     <div className="w-full">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-lg font-semibold mb-4">Color Mapping Results</h2>
+      <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
+        <h2 className="text-lg font-semibold mb-4 text-white">Color Mapping Results</h2>
 
         {/* Summary */}
         <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
           <div>
-            <span className="font-medium text-gray-700">Total beads needed:</span>
-            <span className="ml-2 text-gray-600">{totalBeads}</span>
+            <span className="font-medium text-gray-300">Total beads needed:</span>
+            <span className="ml-2 text-gray-400">{totalBeads}</span>
           </div>
           <div>
-            <span className="font-medium text-gray-700">Unique colors:</span>
-            <span className="ml-2 text-gray-600">{beadList.length}</span>
+            <span className="font-medium text-gray-300">Unique colors:</span>
+            <span className="ml-2 text-gray-400">{beadList.length}</span>
           </div>
         </div>
 
         {/* Bead list */}
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Bead Shopping List</h3>
+          <h3 className="text-sm font-medium text-gray-300 mb-3">Bead Shopping List</h3>
           <div className="max-h-96 overflow-y-auto space-y-2">
             {beadList.map(({ color, count }) => (
               <div
                 key={color.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded border border-gray-200 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 p-3 bg-gray-700/50 rounded border border-gray-600 hover:bg-gray-700 transition-colors"
               >
                 {/* Color swatch */}
                 <div
-                  className="w-10 h-10 rounded border-2 border-gray-300 flex-shrink-0"
+                  className="w-10 h-10 rounded border-2 border-gray-500 flex-shrink-0"
                   style={{ backgroundColor: color.hex }}
                   title={color.hex}
                 />
 
                 {/* Color info */}
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 truncate">
+                  <div className="font-medium text-gray-100 truncate">
                     {color.name}
                   </div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     {color.hex}
                   </div>
                 </div>
@@ -53,8 +53,8 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
                 {/* Count */}
                 <div className="flex-shrink-0">
                   <div className="text-right">
-                    <div className="font-semibold text-gray-900">{count}</div>
-                    <div className="text-xs text-gray-500">
+                    <div className="font-semibold text-gray-100">{count}</div>
+                    <div className="text-xs text-gray-400">
                       {((count / totalBeads) * 100).toFixed(1)}%
                     </div>
                   </div>
@@ -66,12 +66,12 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
 
         {/* Color distribution chart (simple bar chart) */}
         <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-700 mb-3">Color Distribution</h3>
+          <h3 className="text-sm font-medium text-gray-300 mb-3">Color Distribution</h3>
           <div className="space-y-2">
             {beadList.slice(0, 10).map(({ color, count }) => (
               <div key={color.id} className="flex items-center gap-2">
-                <div className="w-24 text-xs text-gray-600 truncate">{color.name}</div>
-                <div className="flex-1 bg-gray-200 rounded-full h-4 overflow-hidden">
+                <div className="w-24 text-xs text-gray-400 truncate">{color.name}</div>
+                <div className="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"
                     style={{
@@ -80,7 +80,7 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
                     }}
                   />
                 </div>
-                <div className="w-12 text-xs text-gray-600 text-right">{count}</div>
+                <div className="w-12 text-xs text-gray-400 text-right">{count}</div>
               </div>
             ))}
           </div>
