@@ -24,9 +24,9 @@ Worktrees should be created in: `.worktrees/` (project-local, hidden)
 
 A Progressive Web App that helps users design beadsprites by parsing pixel art images and mapping colors to available bead inventory.
 
-**Branch:** `feature/implement-beadsprite-helper` (in `.worktrees/implement-beadsprite-helper`)
+**Branch:** All work merged to `master` (feature branch deleted)
 
-### Completed Work (Tasks 1-6)
+### Completed Work (Tasks 1-10)
 
 #### ✅ Task 1: Project Structure Setup
 - **Backend:** Python 3.11 + FastAPI + uv dependency management
@@ -73,6 +73,39 @@ A Progressive Web App that helps users design beadsprites by parsing pixel art i
 - **App component:** Loads and displays Perler colors with swatches
 - **Commit:** `d71fc5e`
 
+#### ✅ Task 7: Image Upload Endpoint
+- `POST /api/images/upload` - accepts multipart/form-data image uploads
+- Validates image files (type, size max 10MB, dimensions max 200×200)
+- Returns image metadata (width, height, format)
+- Integrated with images router
+- **Commit:** `7e308aa`
+
+#### ✅ Task 8: Simple Pixel Extraction Service
+- `extract_pixels_simple()` service converts PIL images to RGB pixel grids
+- Returns structured grid data: `{width, height, grid: [[{r,g,b}]]}`
+- Automatically converts images to RGB mode
+- Integrated into image upload endpoint response
+- **Test suite:** 6 tests, all passing (5 color utils + 1 pixel extraction)
+- **Commit:** `4f0830f`
+
+#### ✅ Task 9: Frontend Image Upload Component
+- **ImageUploadZone:** Drag-and-drop zone with file picker
+- **ImageDisplay:** Shows uploaded image with metadata
+- Updated `projectStore` with `uploadImage()` action
+- Automatic image upload to backend with FormData
+- Error handling and loading states
+- Named exports for store imports
+- **Commit:** `f175415`
+
+#### ✅ Task 10: Basic Color Mapping Display
+- **colorMapper service:** Maps pixels to closest Perler beads using LAB/RGB distance
+- **ColorMappingDisplay:** Shopping list with bead counts and percentages
+- Color distribution visualization with horizontal bar chart
+- Added `rgbToLab()` conversion to frontend colorUtils
+- Automatic color mapping triggered on image upload
+- Displays unique colors count and total beads needed
+- **Commit:** `cd5548f`
+
 ### How to Run
 
 ```bash
@@ -90,7 +123,7 @@ A Progressive Web App that helps users design beadsprites by parsing pixel art i
 # Backend tests
 cd backend
 uv run pytest tests/ -v
-# ✅ 5/5 tests passing
+# ✅ 6/6 tests passing
 
 # Manual API testing
 curl http://localhost:8000/health
@@ -110,25 +143,28 @@ curl -X POST http://localhost:8000/api/colors/convert \
 - Backend: FastAPI, Pillow, NumPy, scikit-image, uv
 - Frontend: React 18, Vite, Zustand, Konva, Tailwind CSS, Axios
 
-### Next Steps
+### MVP Status
 
-From the implementation plan (`docs/plans/2025-10-30-beadsprite-helper-implementation.md`):
+**Completed MVP Features (Tasks 1-10):**
+- ✅ Image upload with drag-and-drop
+- ✅ Pixel extraction from uploaded images
+- ✅ Automatic color mapping to Perler beads
+- ✅ Shopping list with bead counts
+- ✅ Color distribution visualization
+- ✅ LAB and RGB color distance matching
+- ✅ 28 Perler bead colors database
 
-**Remaining Tasks (7-18):**
-- Task 7: Image Upload and Parsing Endpoint
-- Task 8: Automatic Grid Detection
-- Task 9: Manual Grid Extraction Endpoint
-- Task 10: Frontend Image Upload Component
+**Next Steps:**
+
+Remaining tasks from original plan (`docs/plans/2025-10-31-beadsprite-mvp-continuation.md`):
 - Task 11: Canvas Workspace with Konva
-- Task 12: Color Mapping Algorithm
+- Task 12: Enhanced Color Mapping Features
 - Task 13: Color Palette Panel
 - Task 14: Inventory Manager Component
 - Task 15: Preview System
 - Task 16: Project File Save/Load
 - Task 17: Integration Testing
-- Task 18: Start Dev Script Testing
-
-**Note:** Tasks 7-18 are outlined in the plan but need detailed implementation steps added.
+- Task 18: Performance Optimization
 
 ### Files Modified/Created
 
@@ -136,18 +172,25 @@ From the implementation plan (`docs/plans/2025-10-30-beadsprite-helper-implement
 - `backend/main.py` - FastAPI app with CORS and routers
 - `backend/utils/logging_config.py` - Logging configuration
 - `backend/routers/colors.py` - Color endpoints
+- `backend/routers/images.py` - Image upload endpoint (NEW)
 - `backend/services/color_utils.py` - Color conversion utilities
+- `backend/services/pixel_extraction.py` - Pixel extraction service (NEW)
 - `backend/data/perler_colors.json` - Bead color database
-- `backend/tests/test_color_utils.py` - Test suite
+- `backend/tests/test_color_utils.py` - Color utils test suite
+- `backend/tests/test_pixel_extraction.py` - Pixel extraction test (NEW)
 - `backend/pyproject.toml` - Dependencies and dev dependencies
 
 **Frontend:**
-- `frontend/src/App.jsx` - Main app component
+- `frontend/src/App.jsx` - Main app with image upload and color mapping
+- `frontend/src/components/ImageUploadZone.jsx` - Drag-drop upload (NEW)
+- `frontend/src/components/ImageDisplay.jsx` - Image preview (NEW)
+- `frontend/src/components/ColorMappingDisplay.jsx` - Bead shopping list (NEW)
 - `frontend/src/services/api.js` - API client
-- `frontend/src/stores/projectStore.js` - Project state
+- `frontend/src/services/colorMapper.js` - Color mapping service (NEW)
+- `frontend/src/stores/projectStore.js` - Project state with uploadImage
 - `frontend/src/stores/inventoryStore.js` - Inventory state (persisted)
 - `frontend/src/stores/uiStore.js` - UI state
-- `frontend/src/utils/colorUtils.js` - Color utilities
+- `frontend/src/utils/colorUtils.js` - Color utilities with rgbToLab
 - `frontend/vite.config.js` - Vite config with API proxy
 - `frontend/tailwind.config.js` - Tailwind config
 
@@ -159,5 +202,6 @@ From the implementation plan (`docs/plans/2025-10-30-beadsprite-helper-implement
 ### Design Documents
 
 - **Design:** `docs/plans/2025-10-30-beadsprite-helper-design.md`
-- **Implementation Plan:** `docs/plans/2025-10-30-beadsprite-helper-implementation.md`
+- **Implementation Plan (Tasks 1-6):** `docs/plans/2025-10-30-beadsprite-helper-implementation.md`
+- **Continuation Plan (Tasks 7-10):** `docs/plans/2025-10-31-beadsprite-mvp-continuation.md`
 - **Original Requirements:** `instructions.md`
