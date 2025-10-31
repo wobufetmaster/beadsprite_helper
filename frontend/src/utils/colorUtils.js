@@ -18,6 +18,9 @@ export function labDistance(lab1, lab2) {
   return Math.sqrt(dL * dL + da * da + db * db);
 }
 
+// Alias for labDistance
+export const calculateLabDistance = labDistance;
+
 /**
  * Convert hex string to RGB object
  */
@@ -37,6 +40,43 @@ export function hexToRgb(hex) {
  */
 export function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Convert RGB (0-255) to LAB color space
+ * Based on D65 illuminant
+ */
+export function rgbToLab(r, g, b) {
+  // Convert RGB to 0-1 range
+  let rLinear = r / 255;
+  let gLinear = g / 255;
+  let bLinear = b / 255;
+
+  // Apply gamma correction (sRGB to linear RGB)
+  rLinear = rLinear > 0.04045 ? Math.pow((rLinear + 0.055) / 1.055, 2.4) : rLinear / 12.92;
+  gLinear = gLinear > 0.04045 ? Math.pow((gLinear + 0.055) / 1.055, 2.4) : gLinear / 12.92;
+  bLinear = bLinear > 0.04045 ? Math.pow((bLinear + 0.055) / 1.055, 2.4) : bLinear / 12.92;
+
+  // Convert linear RGB to XYZ (D65 illuminant)
+  let x = rLinear * 0.4124564 + gLinear * 0.3575761 + bLinear * 0.1804375;
+  let y = rLinear * 0.2126729 + gLinear * 0.7151522 + bLinear * 0.0721750;
+  let z = rLinear * 0.0193339 + gLinear * 0.1191920 + bLinear * 0.9503041;
+
+  // Normalize for D65 white point
+  x = x / 0.95047;
+  y = y / 1.00000;
+  z = z / 1.08883;
+
+  // Convert XYZ to LAB
+  x = x > 0.008856 ? Math.pow(x, 1/3) : (7.787 * x + 16/116);
+  y = y > 0.008856 ? Math.pow(y, 1/3) : (7.787 * y + 16/116);
+  z = z > 0.008856 ? Math.pow(z, 1/3) : (7.787 * z + 16/116);
+
+  const L = (116 * y) - 16;
+  const a = 500 * (x - y);
+  const B = 200 * (y - z);
+
+  return { L, a, b: B };
 }
 
 /**

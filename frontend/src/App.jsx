@@ -5,11 +5,20 @@ import useInventoryStore from './stores/inventoryStore';
 import useUIStore from './stores/uiStore';
 import ImageUploadZone from './components/ImageUploadZone';
 import ImageDisplay from './components/ImageDisplay';
+import ColorMappingDisplay from './components/ColorMappingDisplay';
+import { mapPixelsToBeads, getBeadList } from './services/colorMapper';
 
 function App() {
   const [perlerColors, setPerlerColors] = useState([]);
+  const [beadList, setBeadList] = useState([]);
+  const [totalBeads, setTotalBeads] = useState(0);
   const { setError, setLoading } = useUIStore();
-  const uploadedImage = useProjectStore(state => state.uploadedImage);
+  const { uploadedImage, parsedPixels, settings, setColorMapping } = useProjectStore(state => ({
+    uploadedImage: state.uploadedImage,
+    parsedPixels: state.parsedPixels,
+    settings: state.settings,
+    setColorMapping: state.setColorMapping
+  }));
 
   useEffect(() => {
     // Load Perler colors on mount
@@ -30,6 +39,35 @@ function App() {
     loadColors();
   }, []);
 
+  // Perform color mapping when image is uploaded and colors are loaded
+  useEffect(() => {
+    if (!parsedPixels || !perlerColors || perlerColors.length === 0) {
+      return;
+    }
+
+    console.log('Performing color mapping...');
+    const { colorMapping, beadCounts } = mapPixelsToBeads(
+      parsedPixels,
+      perlerColors,
+      settings.colorMatchMode
+    );
+
+    // Update store with mapping
+    setColorMapping(colorMapping);
+
+    // Calculate bead list and totals
+    const list = getBeadList(beadCounts, perlerColors);
+    setBeadList(list);
+
+    const total = Object.values(beadCounts).reduce((sum, count) => sum + count, 0);
+    setTotalBeads(total);
+
+    console.log('Color mapping complete:', {
+      uniqueColors: list.length,
+      totalBeads: total
+    });
+  }, [parsedPixels, perlerColors, settings.colorMatchMode]);
+
   return (
     <div className="min-h-screen bg-gray-100">
       <header className="bg-white shadow">
@@ -46,6 +84,11 @@ function App() {
 
         {/* Image Display Section */}
         {uploadedImage && <ImageDisplay />}
+
+        {/* Color Mapping Section */}
+        {uploadedImage && beadList.length > 0 && (
+          <ColorMappingDisplay beadList={beadList} totalBeads={totalBeads} />
+        )}
 
         {/* Color Info Section */}
         <div className="bg-white shadow rounded-lg p-6">
