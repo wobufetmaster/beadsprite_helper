@@ -32,7 +32,26 @@ export function hexToLab(hexColor) {
  * @returns {number} Distance value (0 = identical)
  */
 export function calculateColorDistance(color1, color2) {
-  return differenceCiede2000(color1, color2);
+  try {
+    // Ensure both colors are defined
+    if (!color1 || !color2) {
+      console.error('Invalid color input to calculateColorDistance:', { color1, color2 });
+      return Infinity;
+    }
+
+    const distance = differenceCiede2000(color1, color2);
+
+    // Check if result is valid
+    if (distance === null || distance === undefined || isNaN(distance)) {
+      console.error('Invalid distance calculated:', { color1, color2, distance });
+      return Infinity;
+    }
+
+    return distance;
+  } catch (err) {
+    console.error('Error in calculateColorDistance:', err, { color1, color2 });
+    return Infinity;
+  }
 }
 
 /**
