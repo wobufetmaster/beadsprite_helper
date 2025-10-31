@@ -40,7 +40,7 @@ const useProjectStore = create(
 
   setParsedPixels: (pixels) => set({ parsedPixels: pixels }),
 
-  // Process image in browser
+  // Upload image (detection only, no processing)
   uploadImage: async (file) => {
     const { setLoading, setError, clearError } = useUIStore.getState();
 
@@ -54,13 +54,19 @@ const useProjectStore = create(
       // Load image
       const img = await loadImage(file);
 
+      // Create preview URL
+      const preview = URL.createObjectURL(file);
+
       // Validate dimensions and detect grid if needed
       const dimCheck = validateImageDimensions(img);
       let gridSize = 1;
       let gridInfo = null;
+      let requiresConfirmation = false;
 
       if (!dimCheck.valid) {
         console.warn(dimCheck.message);
+        requiresConfirmation = true;
+
         // Detect grid size for large images
         gridSize = detectGridSize(img);
 
@@ -87,35 +93,91 @@ const useProjectStore = create(
           cell_height: gridSize,
           grid_cols: gridCols,
           grid_rows: gridRows,
-          confidence: gridSize > 1 ? 95 : 0, // High confidence if grid detected, 0 if forced
+          confidence: gridSize > 1 ? 95 : 0,
           original_width: img.width,
-          original_height: img.height
+          original_height: img.height,
+          requires_confirmation: true
         };
       }
 
+      // Update store (no pixel processing yet for large images)
+      set({
+        uploadedImage: {
+          preview,
+          width: img.width,
+          height: img.height,
+          format: file.type.split('/')[1] || 'unknown',
+        },
+        originalImage: file,
+        parsedPixels: requiresConfirmation ? null : null, // Will be set by processImage
+        colorMapping: {},
+        gridInfo,
+      });
+
+      // Auto-process small images
+      if (!requiresConfirmation) {
+        await get().processImage();
+      }
+
+      return { width: img.width, height: img.height };
+    } catch (error) {
+      console.error('Image upload failed:', error);
+      const errorMessage = error.message || 'Failed to upload image';
+      setError(errorMessage);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  },
+
+  // Process image with detected grid size or custom parameters
+  processImage: async (gridParams = null) => {
+    const { setLoading, setError, clearError } = useUIStore.getState();
+    const { originalImage, gridInfo } = get();
+
+    if (!originalImage) {
+      setError('No image to process');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      clearError();
+
+      // Load image
+      const img = await loadImage(originalImage);
+
+      // Determine grid parameters
+      let cellWidth, cellHeight, offsetX, offsetY;
+
+      if (gridParams) {
+        // Use custom parameters
+        cellWidth = gridParams.cellWidth || gridParams.gridSize || 1;
+        cellHeight = gridParams.cellHeight || gridParams.gridSize || cellWidth;
+        offsetX = gridParams.offsetX || 0;
+        offsetY = gridParams.offsetY || 0;
+      } else {
+        // Use detected grid parameters
+        cellWidth = gridInfo?.cell_width || 1;
+        cellHeight = gridInfo?.cell_height || cellWidth;
+        offsetX = gridInfo?.offset_x || 0;
+        offsetY = gridInfo?.offset_y || 0;
+      }
+
+      console.log('Processing image with grid parameters:', { cellWidth, cellHeight, offsetX, offsetY });
+
       // Extract pixels (with grid downsampling if needed)
-      const { width, height, grid } = gridSize > 1
-        ? extractPixelsWithGrid(img, gridSize)
+      const { width, height, grid } = (cellWidth > 1 || cellHeight > 1)
+        ? extractPixelsWithGrid(img, cellWidth, cellHeight, offsetX, offsetY)
         : extractPixels(img);
 
       // Map to Perler beads
       const colorMapping = mapPixelsToBeads(grid);
 
-      // Create preview URL
-      const preview = URL.createObjectURL(file);
-
-      // Update store
+      // Update store with processed data
       set({
-        uploadedImage: {
-          preview,
-          width,
-          height,
-          format: file.type.split('/')[1] || 'unknown',
-        },
-        originalImage: file,
         parsedPixels: { width, height, grid },
         colorMapping,
-        gridInfo, // Grid detection results
       });
 
       return { width, height, grid };

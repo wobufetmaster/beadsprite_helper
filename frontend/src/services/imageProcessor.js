@@ -200,10 +200,18 @@ function isCellUniform(pixels, width, startX, startY, gridSize) {
 /**
  * Extract pixels with grid downsampling
  * @param {HTMLImageElement} img - The image
- * @param {number} gridSize - Grid size (pixels per cell)
+ * @param {number} cellWidth - Cell width (pixels per cell)
+ * @param {number} cellHeight - Cell height (pixels per cell)
+ * @param {number} offsetX - Horizontal offset (pixels)
+ * @param {number} offsetY - Vertical offset (pixels)
  * @returns {object} {width, height, grid}
  */
-export function extractPixelsWithGrid(img, gridSize = 1) {
+export function extractPixelsWithGrid(img, cellWidth = 1, cellHeight = null, offsetX = 0, offsetY = 0) {
+  // If only cellWidth is provided (backward compatibility), use it for both dimensions
+  if (cellHeight === null) {
+    cellHeight = cellWidth;
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
@@ -212,16 +220,16 @@ export function extractPixelsWithGrid(img, gridSize = 1) {
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
   const pixels = imageData.data;
 
-  const gridWidth = Math.floor(img.width / gridSize);
-  const gridHeight = Math.floor(img.height / gridSize);
+  const gridWidth = Math.floor((img.width - offsetX) / cellWidth);
+  const gridHeight = Math.floor((img.height - offsetY) / cellHeight);
   const grid = [];
 
   for (let gridY = 0; gridY < gridHeight; gridY++) {
     const row = [];
     for (let gridX = 0; gridX < gridWidth; gridX++) {
       // Sample center pixel of each grid cell
-      const centerX = gridX * gridSize + Math.floor(gridSize / 2);
-      const centerY = gridY * gridSize + Math.floor(gridSize / 2);
+      const centerX = offsetX + gridX * cellWidth + Math.floor(cellWidth / 2);
+      const centerY = offsetY + gridY * cellHeight + Math.floor(cellHeight / 2);
       const i = (centerY * img.width + centerX) * 4;
 
       row.push({
@@ -233,6 +241,6 @@ export function extractPixelsWithGrid(img, gridSize = 1) {
     grid.push(row);
   }
 
-  console.log(`Downsampled from ${img.width}x${img.height} to ${gridWidth}x${gridHeight} (grid size: ${gridSize})`);
+  console.log(`Downsampled from ${img.width}x${img.height} to ${gridWidth}x${gridHeight} (cell size: ${cellWidth}x${cellHeight}, offset: ${offsetX}x${offsetY})`);
   return { width: gridWidth, height: gridHeight, grid };
 }

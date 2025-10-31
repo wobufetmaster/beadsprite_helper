@@ -1,13 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useProjectStore } from '../stores/projectStore';
-// Note: Grid adjustment requires backend processing - disabled in browser-only mode
 
 export default function GridAdjustmentControls() {
-  const { uploadedImage, originalImage, gridInfo, setParsedPixels } = useProjectStore(state => ({
+  const { uploadedImage, originalImage, gridInfo, processImage } = useProjectStore(state => ({
     uploadedImage: state.uploadedImage,
     originalImage: state.originalImage,
     gridInfo: state.gridInfo,
-    setParsedPixels: state.setParsedPixels
+    processImage: state.processImage
   }));
 
   const [isAdjusting, setIsAdjusting] = useState(false);
@@ -96,7 +95,8 @@ export default function GridAdjustmentControls() {
     img.src = uploadedImage.preview;
   }, [uploadedImage, cellWidth, cellHeight, offsetX, offsetY, isAdjusting]);
 
-  if (!uploadedImage || !gridInfo) {
+  // Only show for large images that require grid adjustment
+  if (!uploadedImage || !gridInfo || !gridInfo.requires_confirmation) {
     return null;
   }
 
@@ -109,32 +109,24 @@ export default function GridAdjustmentControls() {
     setIsProcessing(true);
 
     try {
-      // Create form data with manual grid parameters
-      const formData = new FormData();
-      formData.append('file', originalImage);
-      formData.append('manual_cell_width', cellWidth.toString());
-      formData.append('manual_cell_height', cellHeight.toString());
-      formData.append('manual_offset_x', offsetX.toString());
-      formData.append('manual_offset_y', offsetY.toString());
-
-      const response = await api.post('/images/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      // Process image with custom grid parameters
+      const result = await processImage({
+        cellWidth,
+        cellHeight,
+        offsetX,
+        offsetY
       });
-
-      const data = response.data;
-
-      // Update parsed pixels with the new grid
-      setParsedPixels(data.pixels);
 
       console.log('Grid adjusted successfully:', {
         cellWidth,
         cellHeight,
         offsetX,
         offsetY,
-        resultGrid: `${data.pixels.width}x${data.pixels.height}`
+        resultGrid: `${result.width}x${result.height}`
       });
+
+      // Close the adjustment panel after successful processing
+      setIsAdjusting(false);
     } catch (error) {
       console.error('Failed to apply grid adjustment:', error);
     } finally {
