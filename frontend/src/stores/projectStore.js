@@ -78,8 +78,16 @@ const useProjectStore = create(
           }
         }
 
+        const gridCols = Math.floor(img.width / gridSize);
+        const gridRows = Math.floor(img.height / gridSize);
+
         gridInfo = {
           detected_grid_size: gridSize,
+          cell_width: gridSize,
+          cell_height: gridSize,
+          grid_cols: gridCols,
+          grid_rows: gridRows,
+          confidence: gridSize > 1 ? 95 : 0, // High confidence if grid detected, 0 if forced
           original_width: img.width,
           original_height: img.height
         };
