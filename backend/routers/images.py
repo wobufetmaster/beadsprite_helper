@@ -1,18 +1,26 @@
 import logging
 import io
+from typing import List, Dict
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from pydantic import BaseModel
 from PIL import Image
 import base64
+from services.pixel_extraction import extract_pixels_simple
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/images", tags=["images"])
+
+class PixelGrid(BaseModel):
+    width: int
+    height: int
+    grid: List[List[Dict[str, int]]]
 
 class ImageUploadResponse(BaseModel):
     success: bool
     width: int
     height: int
     format: str
+    pixels: PixelGrid
     message: str
 
 @router.post("/upload", response_model=ImageUploadResponse)
@@ -44,11 +52,15 @@ async def upload_image(file: UploadFile = File(...)):
 
         logger.info(f"Image uploaded: {width}x{height}, format: {image.format}")
 
+        # Extract pixels
+        pixel_data = extract_pixels_simple(image)
+
         return ImageUploadResponse(
             success=True,
             width=width,
             height=height,
             format=image.format,
+            pixels=PixelGrid(**pixel_data),
             message=f"Image uploaded successfully: {width}x{height}"
         )
 
