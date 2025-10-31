@@ -46,7 +46,7 @@ const useProjectStore = create((set) => ({
       formData.append('file', file);
 
       // Upload to backend
-      const response = await api.post('/api/images/upload', formData, {
+      const response = await api.post('/images/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
