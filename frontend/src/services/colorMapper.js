@@ -1,117 +1,63 @@
-import { calculateLabDistance, rgbToLab, hexToRgb } from '../utils/colorUtils';
+import { hexToLab, calculateColorDistance } from '../utils/colorUtils';
+import { PERLER_COLORS } from '../data/perlerColors';
 
 /**
- * Map image pixels to closest Perler bead colors
- * @param {Object} parsedPixels - { width, height, grid: [[{r,g,b}]] }
- * @param {Array} perlerColors - Array of Perler color objects with id, hex, rgb, lab
- * @param {string} mode - 'lab' or 'rgb' for distance calculation
- * @returns {Object} - { colorMapping: {hexColor: beadColorId}, beadCounts: {beadColorId: count} }
+ * Find the closest Perler bead color to an RGB pixel
+ * @param {object} rgbPixel - {r, g, b} with values 0-255
+ * @returns {object} Closest Perler color object
  */
-export function mapPixelsToBeads(parsedPixels, perlerColors, mode = 'lab') {
-  if (!parsedPixels || !perlerColors || perlerColors.length === 0) {
-    return { colorMapping: {}, beadCounts: {} };
-  }
+function findClosestBead(rgbPixel) {
+  // Convert pixel to LAB for accurate color distance
+  const targetLab = hexToLab(`rgb(${rgbPixel.r}, ${rgbPixel.g}, ${rgbPixel.b})`);
 
-  const colorMapping = {};
-  const beadCounts = {};
-
-  // Process each pixel
-  for (let y = 0; y < parsedPixels.height; y++) {
-    for (let x = 0; x < parsedPixels.width; x++) {
-      const pixel = parsedPixels.grid[y][x];
-      const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
-
-      // Skip if we've already mapped this color
-      if (colorMapping[pixelHex]) {
-        beadCounts[colorMapping[pixelHex]]++;
-        continue;
-      }
-
-      // Find closest Perler color
-      const closestBead = findClosestColor(pixel, perlerColors, mode);
-
-      // Store mapping
-      colorMapping[pixelHex] = closestBead.id;
-
-      // Update bead count
-      beadCounts[closestBead.id] = (beadCounts[closestBead.id] || 0) + 1;
-    }
-  }
-
-  return { colorMapping, beadCounts };
-}
-
-/**
- * Find the closest Perler color to a given RGB pixel
- * @param {Object} pixel - {r, g, b}
- * @param {Array} perlerColors - Array of Perler colors
- * @param {string} mode - 'lab' or 'rgb'
- * @returns {Object} - Closest Perler color object
- */
-function findClosestColor(pixel, perlerColors, mode) {
+  let closest = null;
   let minDistance = Infinity;
-  let closestColor = perlerColors[0];
 
-  const pixelLab = mode === 'lab' ? rgbToLab(pixel.r, pixel.g, pixel.b) : null;
-
-  for (const perlerColor of perlerColors) {
-    // Convert hex to RGB if not already available
-    const perlerRgb = perlerColor.rgb || hexToRgb(perlerColor.hex);
-
-    let distance;
-
-    if (mode === 'lab') {
-      // Use LAB color space for perceptually accurate matching
-      const perlerLab = perlerColor.lab || rgbToLab(
-        perlerRgb.r,
-        perlerRgb.g,
-        perlerRgb.b
-      );
-      distance = calculateLabDistance(pixelLab, perlerLab);
-    } else {
-      // Use RGB Euclidean distance
-      distance = Math.sqrt(
-        Math.pow(pixel.r - perlerRgb.r, 2) +
-        Math.pow(pixel.g - perlerRgb.g, 2) +
-        Math.pow(pixel.b - perlerRgb.b, 2)
-      );
-    }
+  for (const bead of PERLER_COLORS) {
+    const beadLab = hexToLab(bead.hex);
+    const distance = calculateColorDistance(targetLab, beadLab);
 
     if (distance < minDistance) {
       minDistance = distance;
-      closestColor = perlerColor;
+      closest = bead;
     }
   }
 
-  return closestColor;
+  return closest;
 }
 
 /**
- * Convert RGB to hex string
- * @param {number} r - Red (0-255)
- * @param {number} g - Green (0-255)
- * @param {number} b - Blue (0-255)
- * @returns {string} - Hex color string (e.g., "#ff0000")
+ * Map a pixel grid to Perler bead colors
+ * @param {array} pixelGrid - 2D array of {r, g, b} pixels
+ * @returns {object} Map of bead_id -> count
  */
-function rgbToHex(r, g, b) {
-  return '#' + [r, g, b].map(x => {
-    const hex = Math.round(x).toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  }).join('');
+export function mapPixelsToBeads(pixelGrid) {
+  const beadMap = {};
+
+  for (const row of pixelGrid) {
+    for (const pixel of row) {
+      const closest = findClosestBead(pixel);
+      beadMap[closest.id] = (beadMap[closest.id] || 0) + 1;
+    }
+  }
+
+  return beadMap;
 }
 
 /**
- * Get sorted bead list with counts
- * @param {Object} beadCounts - {beadColorId: count}
- * @param {Array} perlerColors - Array of Perler colors
- * @returns {Array} - Sorted array of {color, count} objects
+ * Convert bead map to array with color details
+ * @param {object} beadMap - Map of bead_id -> count
+ * @returns {array} Array of {color, count, percentage}
  */
-export function getBeadList(beadCounts, perlerColors) {
-  return Object.entries(beadCounts)
-    .map(([beadId, count]) => ({
-      color: perlerColors.find(c => c.id === beadId),
-      count
-    }))
-    .filter(item => item.color)
+export function formatBeadList(beadMap, totalPixels) {
+  return Object.entries(beadMap)
+    .map(([beadId, count]) => {
+      const color = PERLER_COLORS.find(c => c.id === beadId);
+      return {
+        color,
+        count,
+        percentage: ((count / totalPixels) * 100).toFixed(1)
+      };
+    })
     .sort((a, b) => b.count - a.count);
 }
