@@ -1,1 +1,7 @@
 .worktrees/
+.DS_Store
+*.log
+sample_image.png
+backend/
+start-dev.sh
+serve-local.sh
