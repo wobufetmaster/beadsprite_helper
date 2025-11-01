@@ -6,9 +6,8 @@
 /**
  * Export project state to JSON file
  * @param {object} projectState - Serialized project state from projectStore
- * @param {string} projectName - Project name for filename
  */
-export function exportProject(projectState, projectName = 'Untitled Project') {
+export function exportProject(projectState) {
   try {
     // Create JSON blob
     const json = JSON.stringify(projectState, null, 2);
@@ -49,7 +48,7 @@ export async function importProject(file) {
     let data;
     try {
       data = JSON.parse(text);
-    } catch (e) {
+    } catch {
       throw new Error('Invalid project file - not valid JSON');
     }
 
