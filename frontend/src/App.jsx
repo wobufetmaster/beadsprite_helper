@@ -9,6 +9,7 @@ import GridAdjustmentControls from './components/GridAdjustmentControls';
 import PixelGridDisplay from './components/PixelGridDisplay';
 import ColorMappingDisplay from './components/ColorMappingDisplay';
 import ColorPalette from './components/ColorPalette';
+import ProjectControls from './components/ProjectControls';
 
 function App() {
   const [beadList, setBeadList] = useState([]);
@@ -98,6 +99,9 @@ function App() {
           <h2 className="text-xl font-semibold mb-4 text-white">Upload Pixel Art</h2>
           <ImageUploadZone />
         </div>
+
+        {/* Project Controls */}
+        <ProjectControls />
 
         {/* Image Display Section */}
         {uploadedImage && <ImageDisplay />}

@@ -4,6 +4,7 @@ import { loadImage, extractPixels, extractPixelsWithGrid, detectGridSize, valida
 import { mapPixelsToBeads, createBeadGrid } from '../services/colorMapper';
 import { detectBackground } from '../services/backgroundDetector';
 import { useUIStore } from './uiStore';
+import { exportProject as exportProjectFile, importProject as importProjectFile } from '../services/projectExporter';
 
 const useProjectStore = create(
   persist(
@@ -251,26 +252,73 @@ const useProjectStore = create(
       },
     }),
 
-  // Load project from JSON
-  loadProject: (projectData) =>
-    set({
-      projectName: projectData.name,
-      originalImage: projectData.originalImage,
-      parsedPixels: projectData.parsedPixels,
-      colorMapping: projectData.colorMapping,
-      settings: projectData.settings,
-    }),
+  // Export project to JSON file
+  exportProject: async () => {
+    const state = get();
+    const projectState = {
+      version: state.version,
+      projectName: state.projectName,
+      parsedPixels: state.parsedPixels,
+      beadGrid: state.beadGrid,
+      backgroundMask: state.backgroundMask,
+      removeBackground: state.removeBackground,
+      colorMapping: state.colorMapping,
+      settings: state.settings,
+    };
 
-  // Export project to JSON
-  exportProject: (state) => ({
-    version: state.version,
-    name: state.projectName,
-    originalImage: state.originalImage,
-    parsedPixels: state.parsedPixels,
-    colorMapping: state.colorMapping,
-    beadInventory: [], // Will be filled by inventoryStore
-    settings: state.settings,
-  }),
+    try {
+      const result = exportProjectFile(projectState, state.projectName);
+      return result;
+    } catch (error) {
+      console.error('Failed to export project:', error);
+      useUIStore.getState().setError('Failed to export project');
+      throw error;
+    }
+  },
+
+  // Import project from JSON file
+  importProject: async (file) => {
+    const { setLoading, setError, clearError } = useUIStore.getState();
+
+    try {
+      setLoading(true);
+      clearError();
+
+      // Validate and parse file
+      const projectData = await importProjectFile(file);
+
+      // Load into store
+      set({
+        projectName: projectData.projectName || 'Untitled Project',
+        parsedPixels: projectData.parsedPixels,
+        beadGrid: projectData.beadGrid || null,
+        backgroundMask: projectData.backgroundMask || null,
+        removeBackground: projectData.removeBackground !== undefined ? projectData.removeBackground : true,
+        colorMapping: projectData.colorMapping,
+        settings: projectData.settings || {
+          colorMatchMode: 'lab',
+          similarityThreshold: 5,
+          showGrid: true,
+        },
+        // Clear uploaded image since we can't restore File objects
+        uploadedImage: projectData.parsedPixels ? {
+          width: projectData.parsedPixels.width,
+          height: projectData.parsedPixels.height,
+          format: 'imported',
+        } : null,
+        originalImage: null,
+        gridInfo: null,
+      });
+
+      return projectData;
+    } catch (error) {
+      console.error('Failed to import project:', error);
+      setError(error.message || 'Failed to import project');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  },
 }),
     {
       name: 'beadsprite-project-storage',
