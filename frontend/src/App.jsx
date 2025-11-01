@@ -10,6 +10,7 @@ import PixelGridDisplay from './components/PixelGridDisplay';
 import ColorMappingDisplay from './components/ColorMappingDisplay';
 import ColorPalette from './components/ColorPalette';
 import ProjectControls from './components/ProjectControls';
+import PatternExportControls from './components/PatternExportControls';
 
 function App() {
   const [beadList, setBeadList] = useState([]);
@@ -119,6 +120,9 @@ function App() {
         {uploadedImage && beadList.length > 0 && (
           <ColorMappingDisplay beadList={beadList} totalBeads={totalBeads} />
         )}
+
+        {/* Pattern Export Controls */}
+        {parsedPixels && <PatternExportControls />}
       </main>
     </div>
   );
