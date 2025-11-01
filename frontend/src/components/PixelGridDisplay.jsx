@@ -48,6 +48,46 @@ export default function PixelGridDisplay() {
     return colors;
   }, [selectedPalettes]);
 
+  // Calculate content dimensions (excluding background if enabled)
+  const contentDimensions = useMemo(() => {
+    if (!parsedPixels) return null;
+
+    const { width, height } = parsedPixels;
+
+    // If no background removal, use full dimensions
+    if (!backgroundMask || !removeBackground) {
+      return { width, height, offsetX: 0, offsetY: 0 };
+    }
+
+    // Find bounding box of non-background pixels
+    let minX = width, maxX = 0, minY = height, maxY = 0;
+    let hasContent = false;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (!backgroundMask[y] || !backgroundMask[y][x]) {
+          // This is a non-background pixel
+          hasContent = true;
+          minX = Math.min(minX, x);
+          maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+
+    if (!hasContent) {
+      return { width, height, offsetX: 0, offsetY: 0 };
+    }
+
+    return {
+      width: maxX - minX + 1,
+      height: maxY - minY + 1,
+      offsetX: minX,
+      offsetY: minY
+    };
+  }, [parsedPixels, backgroundMask, removeBackground]);
+
   if (!parsedPixels) {
     return null;
   }
@@ -338,11 +378,16 @@ export default function PixelGridDisplay() {
             <div className="text-sm text-blue-200">
               <span className="font-medium">Boards needed:</span>
               <span className="ml-2 text-white">
-                {Math.ceil(width / pegboardSize)} × {Math.ceil(height / pegboardSize)} = {Math.ceil(width / pegboardSize) * Math.ceil(height / pegboardSize)} boards
+                {Math.ceil(contentDimensions.width / pegboardSize)} × {Math.ceil(contentDimensions.height / pegboardSize)} = {Math.ceil(contentDimensions.width / pegboardSize) * Math.ceil(contentDimensions.height / pegboardSize)} boards
               </span>
               <span className="ml-3 text-gray-400">
                 ({pegboardSize}×{pegboardSize} beads per board)
               </span>
+              {removeBackground && backgroundMask && (contentDimensions.width !== width || contentDimensions.height !== height) && (
+                <div className="mt-2 text-xs text-blue-300">
+                  Content area: {contentDimensions.width}×{contentDimensions.height} (background excluded)
+                </div>
+              )}
             </div>
           </div>
         )}
