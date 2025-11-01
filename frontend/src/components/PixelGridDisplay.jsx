@@ -459,14 +459,32 @@ export default function PixelGridDisplay() {
                   // Check if this pixel is background
                   const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x];
 
-                  // Check if this cell is on a pegboard boundary
-                  const isLeftBoundary = showPegboardGrid && x % pegboardSize === 0;
-                  const isTopBoundary = showPegboardGrid && y % pegboardSize === 0;
+                  // Check if this cell is on a pegboard boundary (relative to content area)
+                  // Calculate which pegboard regions this pixel would be in
+                  const relX = x - contentDimensions.offsetX;
+                  const relY = y - contentDimensions.offsetY;
 
-                  // Checkerboard pattern for background pixels
-                  const checkerboardPattern = isBackground
-                    ? `linear-gradient(45deg, #444 25%, transparent 25%), linear-gradient(-45deg, #444 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #444 75%), linear-gradient(-45deg, transparent 75%, #444 75%)`
-                    : null;
+                  // Determine the pegboard bounding box (may extend beyond content area)
+                  const numBoardsX = Math.ceil(contentDimensions.width / pegboardSize);
+                  const numBoardsY = Math.ceil(contentDimensions.height / pegboardSize);
+                  const pegboardMinX = contentDimensions.offsetX;
+                  const pegboardMinY = contentDimensions.offsetY;
+                  const pegboardMaxX = contentDimensions.offsetX + (numBoardsX * pegboardSize) - 1;
+                  const pegboardMaxY = contentDimensions.offsetY + (numBoardsY * pegboardSize) - 1;
+
+                  const isInPegboardArea =
+                    x >= pegboardMinX && x <= pegboardMaxX &&
+                    y >= pegboardMinY && y <= pegboardMaxY;
+
+                  // Draw gridlines at pegboard intervals within the pegboard coverage area
+                  const isLeftBoundary = showPegboardGrid && isInPegboardArea &&
+                    (relX >= 0 && relX % pegboardSize === 0);
+                  const isTopBoundary = showPegboardGrid && isInPegboardArea &&
+                    (relY >= 0 && relY % pegboardSize === 0);
+                  const isRightBoundary = showPegboardGrid && isInPegboardArea &&
+                    (x === pegboardMaxX);
+                  const isBottomBoundary = showPegboardGrid && isInPegboardArea &&
+                    (y === pegboardMaxY);
 
                   const beadStyle = beadShape === 'circle'
                     ? {
@@ -474,29 +492,25 @@ export default function PixelGridDisplay() {
                         height: `${cellSize}px`,
                         borderRadius: '50%',
                         background: isBackground
-                          ? checkerboardPattern
+                          ? 'rgba(100, 100, 100, 0.3)'
                           : `radial-gradient(circle at center, transparent 0%, transparent 35%, ${hex} 35%, ${hex} 100%)`,
-                        backgroundSize: isBackground ? `${cellSize/2}px ${cellSize/2}px` : 'auto',
-                        backgroundPosition: isBackground ? `0 0, 0 ${cellSize/4}px, ${cellSize/4}px -${cellSize/4}px, -${cellSize/4}px 0` : 'auto',
-                        backgroundColor: isBackground ? '#666' : 'transparent',
                         boxSizing: 'border-box',
-                        border: isTopBoundary || isLeftBoundary
+                        border: isTopBoundary || isLeftBoundary || isRightBoundary || isBottomBoundary
                           ? '3px solid rgba(59, 130, 246, 0.8)'
                           : '1px solid rgba(107, 114, 128, 0.3)',
                         boxShadow: isBackground ? 'none' : `inset 0 0 ${cellSize * 0.15}px rgba(0,0,0,0.3)`,
+                        opacity: isBackground ? 0.5 : 1,
                       }
                     : {
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        backgroundColor: isBackground ? '#666' : hex,
-                        backgroundImage: isBackground ? checkerboardPattern : 'none',
-                        backgroundSize: isBackground ? `${cellSize/2}px ${cellSize/2}px` : 'auto',
-                        backgroundPosition: isBackground ? `0 0, 0 ${cellSize/4}px, ${cellSize/4}px -${cellSize/4}px, -${cellSize/4}px 0` : 'auto',
+                        backgroundColor: isBackground ? 'rgba(100, 100, 100, 0.3)' : hex,
                         boxSizing: 'border-box',
                         borderTop: isTopBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
                         borderLeft: isLeftBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
-                        borderRight: '1px solid rgba(107, 114, 128, 0.5)',
-                        borderBottom: '1px solid rgba(107, 114, 128, 0.5)',
+                        borderRight: isRightBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
+                        borderBottom: isBottomBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
+                        opacity: isBackground ? 0.5 : 1,
                       };
 
                   return (
