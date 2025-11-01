@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { loadImage, extractPixels, extractPixelsWithGrid, detectGridSize, validateImageFile, validateImageDimensions } from '../services/imageProcessor';
-import { mapPixelsToBeads } from '../services/colorMapper';
+import { mapPixelsToBeads, createBeadGrid } from '../services/colorMapper';
+import { detectBackground } from '../services/backgroundDetector';
 import { useUIStore } from './uiStore';
 
 const useProjectStore = create(
@@ -22,6 +23,15 @@ const useProjectStore = create(
 
   // Parsed pixel grid
   parsedPixels: null, // { width, height, grid: [[{r,g,b},...]] }
+
+  // Bead grid (2D array of bead IDs)
+  beadGrid: null, // [[beadId, ...]]
+
+  // Background mask (2D boolean array)
+  backgroundMask: null, // [[boolean, ...]]
+
+  // Background removal toggle
+  removeBackground: true, // true = exclude background from counts/rendering
 
   // Color mapping from image colors to bead colors
   colorMapping: {}, // { "#ff0000": "cherry_red", ... }
@@ -169,16 +179,24 @@ const useProjectStore = create(
       console.log('Processing image with grid parameters:', { cellWidth, cellHeight, offsetX, offsetY });
 
       // Extract pixels (with grid downsampling if needed)
-      const { width, height, grid } = (cellWidth > 1 || cellHeight > 1)
+      const { width, height, grid, alphaData } = (cellWidth > 1 || cellHeight > 1)
         ? extractPixelsWithGrid(img, cellWidth, cellHeight, offsetX, offsetY)
         : extractPixels(img);
+
+      // Create bead grid (2D array of bead IDs)
+      const beadGrid = createBeadGrid(grid);
 
       // Map to Perler beads
       const colorMapping = mapPixelsToBeads(grid);
 
+      // Detect background
+      const backgroundMask = detectBackground(beadGrid, alphaData, width, height);
+
       // Update store with processed data
       set({
         parsedPixels: { width, height, grid },
+        beadGrid,
+        backgroundMask,
         colorMapping,
       });
 
@@ -208,6 +226,12 @@ const useProjectStore = create(
       settings: { ...state.settings, ...newSettings },
     })),
 
+  // Toggle background removal
+  toggleBackgroundRemoval: () =>
+    set((state) => ({
+      removeBackground: !state.removeBackground,
+    })),
+
   // Reset project
   resetProject: () =>
     set({
@@ -216,6 +240,9 @@ const useProjectStore = create(
       uploadedImage: null,
       gridInfo: null,
       parsedPixels: null,
+      beadGrid: null,
+      backgroundMask: null,
+      removeBackground: true,
       colorMapping: {},
       settings: {
         colorMatchMode: 'lab',
@@ -259,6 +286,9 @@ const useProjectStore = create(
         } : null,
         gridInfo: state.gridInfo,
         parsedPixels: state.parsedPixels,
+        beadGrid: state.beadGrid,
+        backgroundMask: state.backgroundMask,
+        removeBackground: state.removeBackground,
         colorMapping: state.colorMapping,
         settings: state.settings,
         // originalImage is intentionally excluded - File objects can't be serialized

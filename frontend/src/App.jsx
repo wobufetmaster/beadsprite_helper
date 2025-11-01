@@ -14,11 +14,13 @@ function App() {
   const [beadList, setBeadList] = useState([]);
   const [totalBeads, setTotalBeads] = useState(0);
   const { setError, setLoading } = useUIStore();
-  const { uploadedImage, parsedPixels, settings, setColorMapping } = useProjectStore(state => ({
+  const { uploadedImage, parsedPixels, settings, setColorMapping, backgroundMask, removeBackground } = useProjectStore(state => ({
     uploadedImage: state.uploadedImage,
     parsedPixels: state.parsedPixels,
     settings: state.settings,
-    setColorMapping: state.setColorMapping
+    setColorMapping: state.setColorMapping,
+    backgroundMask: state.backgroundMask,
+    removeBackground: state.removeBackground
   }));
 
   const { getAvailableColors, selectedPalettes } = usePaletteStore(state => ({
@@ -27,6 +29,14 @@ function App() {
   }));
 
   const availableColors = useMemo(() => getAvailableColors(), [selectedPalettes]);
+
+  // Helper function to convert RGB to hex
+  const rgbToHex = (r, g, b) => {
+    return '#' + [r, g, b].map(x => {
+      const hex = x.toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    }).join('');
+  };
 
   // Calculate bead list from color mapping (mapping is done by projectStore)
   useEffect(() => {
@@ -41,11 +51,27 @@ function App() {
       return;
     }
 
-    // Convert mapping to bead list
-    const beadCounts = Object.values(colorMapping).reduce((acc, beadId) => {
-      acc[beadId] = (acc[beadId] || 0) + 1;
-      return acc;
-    }, {});
+    // Count beads by iterating through the pixel grid
+    const beadCounts = {};
+    let total = 0;
+
+    parsedPixels.grid.forEach((row, y) => {
+      row.forEach((pixel, x) => {
+        // Skip background pixels if removeBackground is true
+        if (backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x]) {
+          return;
+        }
+
+        // Get the bead ID for this pixel
+        const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
+        const beadId = colorMapping[pixelHex];
+
+        if (beadId) {
+          beadCounts[beadId] = (beadCounts[beadId] || 0) + 1;
+          total++;
+        }
+      });
+    });
 
     const list = Object.entries(beadCounts)
       .map(([beadId, count]) => ({
@@ -56,8 +82,8 @@ function App() {
       .sort((a, b) => b.count - a.count);
 
     setBeadList(list);
-    setTotalBeads(Object.values(beadCounts).reduce((sum, count) => sum + count, 0));
-  }, [parsedPixels, availableColors]);
+    setTotalBeads(total);
+  }, [parsedPixels, availableColors, backgroundMask, removeBackground]);
 
   return (
     <div className="min-h-screen bg-gray-900">

@@ -25,7 +25,7 @@ export function loadImage(file) {
 /**
  * Extract pixel grid from an image using Canvas API
  * @param {HTMLImageElement} img - Loaded image element
- * @returns {object} { width, height, grid: [[{r,g,b}]] }
+ * @returns {object} { width, height, grid: [[{r,g,b}]], alphaData: Uint8ClampedArray }
  */
 export function extractPixels(img) {
   // Create canvas matching image dimensions
@@ -40,6 +40,12 @@ export function extractPixels(img) {
   // Get pixel data
   const imageData = ctx.getImageData(0, 0, img.width, img.height);
   const pixels = imageData.data; // RGBA array
+
+  // Extract alpha channel (every 4th byte starting at index 3)
+  const alphaData = new Uint8ClampedArray(img.width * img.height);
+  for (let i = 0; i < img.width * img.height; i++) {
+    alphaData[i] = pixels[i * 4 + 3];
+  }
 
   // Convert to grid structure matching backend format
   const grid = [];
@@ -60,7 +66,8 @@ export function extractPixels(img) {
   return {
     width: img.width,
     height: img.height,
-    grid
+    grid,
+    alphaData
   };
 }
 
@@ -204,7 +211,7 @@ function isCellUniform(pixels, width, startX, startY, gridSize) {
  * @param {number} cellHeight - Cell height (pixels per cell)
  * @param {number} offsetX - Horizontal offset (pixels)
  * @param {number} offsetY - Vertical offset (pixels)
- * @returns {object} {width, height, grid}
+ * @returns {object} {width, height, grid, alphaData}
  */
 export function extractPixelsWithGrid(img, cellWidth = 1, cellHeight = null, offsetX = 0, offsetY = 0) {
   // If only cellWidth is provided (backward compatibility), use it for both dimensions
@@ -223,6 +230,7 @@ export function extractPixelsWithGrid(img, cellWidth = 1, cellHeight = null, off
   const gridWidth = Math.floor((img.width - offsetX) / cellWidth);
   const gridHeight = Math.floor((img.height - offsetY) / cellHeight);
   const grid = [];
+  const alphaData = new Uint8ClampedArray(gridWidth * gridHeight);
 
   for (let gridY = 0; gridY < gridHeight; gridY++) {
     const row = [];
@@ -237,10 +245,13 @@ export function extractPixelsWithGrid(img, cellWidth = 1, cellHeight = null, off
         g: pixels[i + 1],
         b: pixels[i + 2]
       });
+
+      // Store alpha value for this grid cell
+      alphaData[gridY * gridWidth + gridX] = pixels[i + 3];
     }
     grid.push(row);
   }
 
   console.log(`Downsampled from ${img.width}x${img.height} to ${gridWidth}x${gridHeight} (cell size: ${cellWidth}x${cellHeight}, offset: ${offsetX}x${offsetY})`);
-  return { width: gridWidth, height: gridHeight, grid };
+  return { width: gridWidth, height: gridHeight, grid, alphaData };
 }

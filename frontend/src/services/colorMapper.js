@@ -58,6 +58,26 @@ export function mapPixelsToBeads(pixelGrid) {
 }
 
 /**
+ * Create a 2D grid of bead IDs from pixel grid
+ * @param {array} pixelGrid - 2D array of {r, g, b} pixels
+ * @returns {array} 2D array of bead IDs
+ */
+export function createBeadGrid(pixelGrid) {
+  const beadGrid = [];
+
+  for (const row of pixelGrid) {
+    const beadRow = [];
+    for (const pixel of row) {
+      const closest = findClosestBead(pixel);
+      beadRow.push(closest.id);
+    }
+    beadGrid.push(beadRow);
+  }
+
+  return beadGrid;
+}
+
+/**
  * Convert bead map to array with color details
  * @param {object} beadMap - Map of bead_id -> count
  * @returns {array} Array of {color, count, percentage}

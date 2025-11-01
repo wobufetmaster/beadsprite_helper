@@ -4,11 +4,14 @@ import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function PixelGridDisplay() {
-  const { parsedPixels, gridInfo, colorMapping, updateColorMapping } = useProjectStore(state => ({
+  const { parsedPixels, gridInfo, colorMapping, updateColorMapping, backgroundMask, removeBackground, toggleBackgroundRemoval } = useProjectStore(state => ({
     parsedPixels: state.parsedPixels,
     gridInfo: state.gridInfo,
     colorMapping: state.colorMapping,
-    updateColorMapping: state.updateColorMapping
+    updateColorMapping: state.updateColorMapping,
+    backgroundMask: state.backgroundMask,
+    removeBackground: state.removeBackground,
+    toggleBackgroundRemoval: state.toggleBackgroundRemoval
   }));
 
   const { getAllPalettes, selectedPalettes, isPaletteSelected, togglePalette } = usePaletteStore(state => ({
@@ -227,6 +230,19 @@ export default function PixelGridDisplay() {
                     {showMappedColors ? 'Show Original' : 'Show Mapped'}
                   </button>
                 )}
+                {backgroundMask && (
+                  <button
+                    onClick={toggleBackgroundRemoval}
+                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                      removeBackground
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-700 hover:bg-gray-600 text-white'
+                    }`}
+                    title="Toggle background removal"
+                  >
+                    {removeBackground ? 'Background: Hidden' : 'Background: Shown'}
+                  </button>
+                )}
                 <button
                   onClick={() => setBeadShape(beadShape === 'square' ? 'circle' : 'square')}
                   className={`px-3 py-1 text-sm rounded transition-colors ${
@@ -395,26 +411,42 @@ export default function PixelGridDisplay() {
                   const isSelected = selectedCell && selectedCell.x === x && selectedCell.y === y;
                   const isHovered = hoveredCell && hoveredCell.x === x && hoveredCell.y === y;
 
+                  // Check if this pixel is background
+                  const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x];
+
                   // Check if this cell is on a pegboard boundary
                   const isLeftBoundary = showPegboardGrid && x % pegboardSize === 0;
                   const isTopBoundary = showPegboardGrid && y % pegboardSize === 0;
+
+                  // Checkerboard pattern for background pixels
+                  const checkerboardPattern = isBackground
+                    ? `linear-gradient(45deg, #444 25%, transparent 25%), linear-gradient(-45deg, #444 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #444 75%), linear-gradient(-45deg, transparent 75%, #444 75%)`
+                    : null;
 
                   const beadStyle = beadShape === 'circle'
                     ? {
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
                         borderRadius: '50%',
-                        background: `radial-gradient(circle at center, transparent 0%, transparent 35%, ${hex} 35%, ${hex} 100%)`,
+                        background: isBackground
+                          ? checkerboardPattern
+                          : `radial-gradient(circle at center, transparent 0%, transparent 35%, ${hex} 35%, ${hex} 100%)`,
+                        backgroundSize: isBackground ? `${cellSize/2}px ${cellSize/2}px` : 'auto',
+                        backgroundPosition: isBackground ? `0 0, 0 ${cellSize/4}px, ${cellSize/4}px -${cellSize/4}px, -${cellSize/4}px 0` : 'auto',
+                        backgroundColor: isBackground ? '#666' : 'transparent',
                         boxSizing: 'border-box',
                         border: isTopBoundary || isLeftBoundary
                           ? '3px solid rgba(59, 130, 246, 0.8)'
                           : '1px solid rgba(107, 114, 128, 0.3)',
-                        boxShadow: `inset 0 0 ${cellSize * 0.15}px rgba(0,0,0,0.3)`,
+                        boxShadow: isBackground ? 'none' : `inset 0 0 ${cellSize * 0.15}px rgba(0,0,0,0.3)`,
                       }
                     : {
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        backgroundColor: hex,
+                        backgroundColor: isBackground ? '#666' : hex,
+                        backgroundImage: isBackground ? checkerboardPattern : 'none',
+                        backgroundSize: isBackground ? `${cellSize/2}px ${cellSize/2}px` : 'auto',
+                        backgroundPosition: isBackground ? `0 0, 0 ${cellSize/4}px, ${cellSize/4}px -${cellSize/4}px, -${cellSize/4}px 0` : 'auto',
                         boxSizing: 'border-box',
                         borderTop: isTopBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
                         borderLeft: isLeftBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
@@ -435,7 +467,7 @@ export default function PixelGridDisplay() {
                       onClick={() => handleCellClick(x, y, pixel)}
                       onMouseEnter={() => handleCellHover(x, y, pixel)}
                       onMouseLeave={() => setHoveredCell(null)}
-                      title={beadName ? `${beadName} (${hex})` : `(${x}, ${y}): ${hex}`}
+                      title={isBackground ? `Background pixel (${x}, ${y})` : (beadName ? `${beadName} (${hex})` : `(${x}, ${y}): ${hex}`)}
                     />
                   );
                 })
