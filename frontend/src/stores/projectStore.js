@@ -267,7 +267,7 @@ const useProjectStore = create(
     };
 
     try {
-      const result = exportProjectFile(projectState, state.projectName);
+      const result = exportProjectFile(projectState);
       return result;
     } catch (error) {
       console.error('Failed to export project:', error);
