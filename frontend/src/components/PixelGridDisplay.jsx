@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
-import { PERLER_COLORS } from '../data/perlerColors';
+import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function PixelGridDisplay() {
@@ -11,17 +11,39 @@ export default function PixelGridDisplay() {
     updateColorMapping: state.updateColorMapping
   }));
 
+  const { getAllPalettes, selectedPalettes, isPaletteSelected, togglePalette } = usePaletteStore(state => ({
+    getAllPalettes: state.getAllPalettes,
+    selectedPalettes: state.selectedPalettes,
+    isPaletteSelected: state.isPaletteSelected,
+    togglePalette: state.togglePalette
+  }));
+
   const [hoveredCell, setHoveredCell] = useState(null);
   const [selectedCell, setSelectedCell] = useState(null);
   const [showMappedColors, setShowMappedColors] = useState(true);
-  const [beadColors, setBeadColors] = useState([]);
   const [filterText, setFilterText] = useState('');
   const [mappingHistory, setMappingHistory] = useState([]);
+  const preserveSelectionRef = useRef(false);
 
-  // Load bead colors for name lookup
-  useEffect(() => {
-    setBeadColors(PERLER_COLORS);
-  }, []);
+  // Pegboard grid state
+  const [showPegboardGrid, setShowPegboardGrid] = useState(false);
+  const [pegboardSize, setPegboardSize] = useState(29);
+
+  // Bead display mode
+  const [beadShape, setBeadShape] = useState('square'); // 'square' or 'circle'
+
+  // Get bead colors from selected palettes
+  const beadColors = useMemo(() => {
+    const allPalettes = getAllPalettes();
+    const colors = [];
+    selectedPalettes.forEach(paletteId => {
+      const palette = allPalettes.find(p => p.id === paletteId);
+      if (palette) {
+        colors.push(...palette.colors);
+      }
+    });
+    return colors;
+  }, [selectedPalettes]);
 
   if (!parsedPixels) {
     return null;
@@ -34,7 +56,6 @@ export default function PixelGridDisplay() {
 
   const handleCellClick = (x, y, color) => {
     setSelectedCell({ x, y, color });
-    console.log(`Clicked cell (${x}, ${y}):`, color);
   };
 
   const handleBeadColorSelect = (beadColorId) => {
@@ -68,13 +89,66 @@ export default function PixelGridDisplay() {
     }
   };
 
-  const handleReset = () => {
+  const handleResetAll = () => {
+    if (!parsedPixels || beadColors.length === 0) return;
+
+    try {
+      // Extract all unique colors from the pixel grid
+      const colorSet = new Set();
+      parsedPixels.grid.forEach(row => {
+        row.forEach(pixel => {
+          const hex = rgbToHex(pixel.r, pixel.g, pixel.b);
+          colorSet.add(hex);
+        });
+      });
+
+      // Re-match all colors using RGB distance
+      const uniqueColors = Array.from(colorSet);
+      console.log(`Resetting ${uniqueColors.length} colors to auto-matched values...`);
+
+      uniqueColors.forEach(imageColorHex => {
+        const imageRgb = hexToRgb(imageColorHex);
+        let closestBead = null;
+        let minDistance = Infinity;
+
+        for (const bead of beadColors) {
+          const beadRgb = hexToRgb(bead.hex);
+          const distance = calculateRgbDistance(imageRgb, beadRgb);
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestBead = bead;
+          }
+        }
+
+        if (closestBead) {
+          updateColorMapping(imageColorHex, closestBead.id);
+        }
+      });
+
+      // Clear undo history since we just reset everything
+      setMappingHistory([]);
+
+      // Don't close color picker - user might want to continue editing
+
+      console.log('All colors reset to auto-matched values');
+    } catch (error) {
+      console.error('Failed to reset colors:', error);
+    }
+  };
+
+  const handleClearPixel = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (!selectedCell) return;
 
     const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
 
     try {
-      // Re-match this specific color using RGB distance (browser-only)
+      // Re-match just this specific color
       const imageRgb = hexToRgb(originalHex);
       let closestBead = null;
       let minDistance = Infinity;
@@ -90,14 +164,11 @@ export default function PixelGridDisplay() {
       }
 
       if (closestBead) {
-        // Update to auto-matched color (DON'T add to history - reset is not undoable)
         updateColorMapping(originalHex, closestBead.id);
-
-        // Clear the selection after reset
-        setSelectedCell(null);
+        // Side panel stays open for further adjustments
       }
     } catch (error) {
-      console.error('Failed to reset color:', error);
+      console.error('Failed to clear pixel color:', error);
     }
   };
 
@@ -147,14 +218,38 @@ export default function PixelGridDisplay() {
           <div className="flex-1">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Pixel Art Grid</h2>
-              {hasMappedColors && (
+              <div className="flex gap-2">
+                {hasMappedColors && (
+                  <button
+                    onClick={() => setShowMappedColors(!showMappedColors)}
+                    className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    {showMappedColors ? 'Show Original' : 'Show Mapped'}
+                  </button>
+                )}
                 <button
-                  onClick={() => setShowMappedColors(!showMappedColors)}
-                  className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  onClick={() => setBeadShape(beadShape === 'square' ? 'circle' : 'square')}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    beadShape === 'circle'
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  }`}
+                  title="Toggle between square pixels and circular beads"
                 >
-                  {showMappedColors ? 'Show Original' : 'Show Mapped'}
+                  {beadShape === 'circle' ? '● Beads' : '■ Pixels'}
                 </button>
-              )}
+                <button
+                  onClick={() => setShowPegboardGrid(!showPegboardGrid)}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    showPegboardGrid
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  }`}
+                  title="Toggle pegboard grid overlay"
+                >
+                  Pegboard Grid
+                </button>
+              </div>
             </div>
 
         {/* Grid info */}
@@ -172,6 +267,69 @@ export default function PixelGridDisplay() {
             </span>
           )}
         </div>
+
+        {/* Pegboard grid controls */}
+        {showPegboardGrid && (
+          <div className="mb-4 p-4 bg-blue-900/20 rounded border border-blue-500/30">
+            <div className="mb-3">
+              <label className="block text-sm font-medium text-blue-300 mb-2">
+                Pegboard Size:
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPegboardSize(29)}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    pegboardSize === 29
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  29×29
+                </button>
+                <button
+                  onClick={() => setPegboardSize(50)}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    pegboardSize === 50
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  50×50
+                </button>
+                <button
+                  onClick={() => setPegboardSize(57)}
+                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                    pegboardSize === 57
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  57×57
+                </button>
+                <div className="flex items-center gap-2 ml-2">
+                  <span className="text-sm text-gray-400">Custom:</span>
+                  <input
+                    type="number"
+                    min="10"
+                    max="100"
+                    value={pegboardSize}
+                    onChange={(e) => setPegboardSize(parseInt(e.target.value) || 29)}
+                    className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="text-sm text-blue-200">
+              <span className="font-medium">Boards needed:</span>
+              <span className="ml-2 text-white">
+                {Math.ceil(width / pegboardSize)} × {Math.ceil(height / pegboardSize)} = {Math.ceil(width / pegboardSize) * Math.ceil(height / pegboardSize)} boards
+              </span>
+              <span className="ml-3 text-gray-400">
+                ({pegboardSize}×{pegboardSize} beads per board)
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Hover info - fixed height to prevent layout shift */}
         <div className="mb-4 h-16">
@@ -222,41 +380,67 @@ export default function PixelGridDisplay() {
 
         {/* Interactive pixel grid */}
         <div className="flex justify-center items-center bg-gray-900/50 rounded p-4 overflow-auto">
-          <div
-            className="inline-grid gap-0"
-            style={{
-              gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-            }}
-          >
-            {grid.map((row, y) =>
-              row.map((pixel, x) => {
-                const { hex, beadName } = getDisplayColor(pixel);
-                const originalHex = rgbToHex(pixel.r, pixel.g, pixel.b);
-                const isSelected = selectedCell && selectedCell.x === x && selectedCell.y === y;
-                const isHovered = hoveredCell && hoveredCell.x === x && hoveredCell.y === y;
+          <div className="relative inline-block">
+            <div
+              className="inline-grid gap-0"
+              style={{
+                gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
+                gridTemplateRows: `repeat(${height}, ${cellSize}px)`,
+              }}
+            >
+              {grid.map((row, y) =>
+                row.map((pixel, x) => {
+                  const { hex, beadName } = getDisplayColor(pixel);
+                  const originalHex = rgbToHex(pixel.r, pixel.g, pixel.b);
+                  const isSelected = selectedCell && selectedCell.x === x && selectedCell.y === y;
+                  const isHovered = hoveredCell && hoveredCell.x === x && hoveredCell.y === y;
 
-                return (
-                  <button
-                    key={`${x}-${y}`}
-                    className={`
-                      border border-gray-700/50 transition-all cursor-pointer
-                      hover:border-white hover:z-10 hover:scale-110
-                      ${isSelected ? 'ring-2 ring-blue-400 z-20' : ''}
-                      ${isHovered ? 'border-white' : ''}
-                    `}
-                    style={{
-                      width: `${cellSize}px`,
-                      height: `${cellSize}px`,
-                      backgroundColor: hex,
-                    }}
-                    onClick={() => handleCellClick(x, y, pixel)}
-                    onMouseEnter={() => handleCellHover(x, y, pixel)}
-                    onMouseLeave={() => setHoveredCell(null)}
-                    title={beadName ? `${beadName} (${hex})` : `(${x}, ${y}): ${hex}`}
-                  />
-                );
-              })
-            )}
+                  // Check if this cell is on a pegboard boundary
+                  const isLeftBoundary = showPegboardGrid && x % pegboardSize === 0;
+                  const isTopBoundary = showPegboardGrid && y % pegboardSize === 0;
+
+                  const beadStyle = beadShape === 'circle'
+                    ? {
+                        width: `${cellSize}px`,
+                        height: `${cellSize}px`,
+                        borderRadius: '50%',
+                        background: `radial-gradient(circle at center, transparent 0%, transparent 35%, ${hex} 35%, ${hex} 100%)`,
+                        boxSizing: 'border-box',
+                        border: isTopBoundary || isLeftBoundary
+                          ? '3px solid rgba(59, 130, 246, 0.8)'
+                          : '1px solid rgba(107, 114, 128, 0.3)',
+                        boxShadow: `inset 0 0 ${cellSize * 0.15}px rgba(0,0,0,0.3)`,
+                      }
+                    : {
+                        width: `${cellSize}px`,
+                        height: `${cellSize}px`,
+                        backgroundColor: hex,
+                        boxSizing: 'border-box',
+                        borderTop: isTopBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
+                        borderLeft: isLeftBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
+                        borderRight: '1px solid rgba(107, 114, 128, 0.5)',
+                        borderBottom: '1px solid rgba(107, 114, 128, 0.5)',
+                      };
+
+                  return (
+                    <button
+                      key={`${x}-${y}`}
+                      className={`
+                        transition-all cursor-pointer
+                        hover:border-white hover:z-10 hover:scale-110
+                        ${isSelected ? 'ring-2 ring-blue-400 z-20' : ''}
+                        ${isHovered ? 'border-white' : ''}
+                      `}
+                      style={beadStyle}
+                      onClick={() => handleCellClick(x, y, pixel)}
+                      onMouseEnter={() => handleCellHover(x, y, pixel)}
+                      onMouseLeave={() => setHoveredCell(null)}
+                      title={beadName ? `${beadName} (${hex})` : `(${x}, ${y}): ${hex}`}
+                    />
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 
@@ -329,12 +513,42 @@ export default function PixelGridDisplay() {
                       Undo
                     </button>
                     <button
-                      onClick={handleReset}
+                      onClick={(e) => handleClearPixel(e)}
                       className="px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
-                      title="Reset to auto-matched color"
+                      title="Reset this pixel to auto-matched color"
                     >
-                      Reset
+                      Clear
                     </button>
+                    <button
+                      onClick={handleResetAll}
+                      className="px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                      title="Reset ALL colors to auto-matched values"
+                    >
+                      Reset All
+                    </button>
+                  </div>
+                </div>
+
+                {/* Palette Selector */}
+                <div className="mb-4 p-3 bg-gray-700/50 rounded border border-gray-600">
+                  <div className="text-sm text-gray-300 mb-2">Bead Palettes:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {getAllPalettes().map(palette => (
+                      <button
+                        key={palette.id}
+                        onClick={() => togglePalette(palette.id)}
+                        className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${
+                          isPaletteSelected(palette.id)
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                        }`}
+                      >
+                        {palette.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-2">
+                    {beadColors.length} colors available
                   </div>
                 </div>
 

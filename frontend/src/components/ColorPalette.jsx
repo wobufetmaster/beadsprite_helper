@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import useInventoryStore from '../stores/inventoryStore';
-import { PERLER_COLORS } from '../data/perlerColors';
+import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function ColorPalette() {
@@ -16,17 +16,28 @@ export default function ColorPalette() {
     ownedColors: state.ownedColors
   }));
 
-  const [beadColors, setBeadColors] = useState([]);
+  const { getAllPalettes, selectedPalettes } = usePaletteStore(state => ({
+    getAllPalettes: state.getAllPalettes,
+    selectedPalettes: state.selectedPalettes
+  }));
+
+  // Compute available colors directly from selected palettes
+  const beadColors = useMemo(() => {
+    const allPalettes = getAllPalettes();
+    const colors = [];
+    selectedPalettes.forEach(paletteId => {
+      const palette = allPalettes.find(p => p.id === paletteId);
+      if (palette) {
+        colors.push(...palette.colors);
+      }
+    });
+    return colors;
+  }, [selectedPalettes]);
   const [uniqueColors, setUniqueColors] = useState([]);
   const [colorMatches, setColorMatches] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
-
-  // Load all Perler bead colors on mount
-  useEffect(() => {
-    setBeadColors(PERLER_COLORS);
-  }, []);
 
   // Extract unique colors from parsed pixels
   useEffect(() => {
@@ -48,6 +59,13 @@ export default function ColorPalette() {
       matchColors(colors);
     }
   }, [parsedPixels, beadColors]);
+
+  // Re-match when palette selection changes
+  useEffect(() => {
+    if (uniqueColors.length > 0 && beadColors.length > 0) {
+      matchColors(uniqueColors);
+    }
+  }, [selectedPalettes]);
 
   // Rebuild colorMatches from existing colorMapping (for page reload)
   const rebuildColorMatches = () => {
@@ -185,7 +203,7 @@ export default function ColorPalette() {
       </div>
 
       {/* Color matches */}
-      <div className="space-y-2">
+      <div className="grid grid-cols-3 gap-3">
         {uniqueColors.map(imageColor => {
           const match = colorMatches[imageColor];
           const count = getColorCount(imageColor);
@@ -194,46 +212,47 @@ export default function ColorPalette() {
           return (
             <div
               key={imageColor}
-              className="flex items-center gap-3 p-3 bg-gray-700/50 rounded hover:bg-gray-700 transition-colors cursor-pointer"
+              className="flex flex-col gap-2 p-3 bg-gray-700/50 rounded hover:bg-gray-700 transition-colors cursor-pointer"
               onClick={() => handleColorClick(imageColor)}
             >
-              {/* Image color swatch */}
-              <div
-                className="w-10 h-10 rounded border-2 border-gray-600 flex-shrink-0"
-                style={{ backgroundColor: imageColor }}
-                title={imageColor}
-              />
-
-              {/* Arrow */}
-              <div className="text-gray-400">→</div>
-
-              {/* Bead color swatch */}
-              {match ? (
+              {/* Color swatches */}
+              <div className="flex items-center gap-2">
+                {/* Image color swatch */}
                 <div
-                  className="w-10 h-10 rounded border-2 border-gray-600 flex-shrink-0"
-                  style={{ backgroundColor: match.beadColorHex }}
-                  title={match.beadColorName}
+                  className="w-12 h-12 rounded border-2 border-gray-600 flex-shrink-0"
+                  style={{ backgroundColor: imageColor }}
+                  title={imageColor}
                 />
-              ) : (
-                <div className="w-10 h-10 rounded border-2 border-gray-600 flex-shrink-0 bg-gray-600" />
-              )}
+
+                {/* Arrow */}
+                <div className="text-gray-400 text-lg">→</div>
+
+                {/* Bead color swatch */}
+                {match ? (
+                  <div
+                    className="w-12 h-12 rounded border-2 border-gray-600 flex-shrink-0"
+                    style={{ backgroundColor: match.beadColorHex }}
+                    title={match.beadColorName}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded border-2 border-gray-600 flex-shrink-0 bg-gray-600" />
+                )}
+              </div>
 
               {/* Color info */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0">
                 <div className="text-sm font-medium text-white truncate">
                   {match ? match.beadColorName : 'No match'}
                 </div>
                 <div className="text-xs text-gray-400">
                   {count} beads ({percentage}%)
+                  {match && match.distance > 0 && (
+                    <span className="ml-2 text-gray-500">
+                      Δ {match.distance.toFixed(1)}
+                    </span>
+                  )}
                 </div>
               </div>
-
-              {/* Distance indicator */}
-              {match && match.distance > 0 && (
-                <div className="text-xs text-gray-500">
-                  Δ {match.distance.toFixed(1)}
-                </div>
-              )}
             </div>
           );
         })}
@@ -244,7 +263,6 @@ export default function ColorPalette() {
         <ColorPickerModal
           imageColor={selectedColor}
           currentMatch={colorMatches[selectedColor]}
-          beadColors={beadColors}
           onSelect={handleBeadColorSelect}
           onClose={() => {
             setShowColorPicker(false);
@@ -257,8 +275,27 @@ export default function ColorPalette() {
 }
 
 // Color picker modal component
-function ColorPickerModal({ imageColor, currentMatch, beadColors, onSelect, onClose }) {
+function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
   const [filter, setFilter] = useState('');
+
+  // Get current bead colors from palette store - subscribe to selectedPalettes to trigger re-render
+  const { selectedPalettes, getAllPalettes } = usePaletteStore(state => ({
+    selectedPalettes: state.selectedPalettes,
+    getAllPalettes: state.getAllPalettes
+  }));
+
+  // Compute available colors directly from selected palettes
+  const beadColors = useMemo(() => {
+    const allPalettes = getAllPalettes();
+    const colors = [];
+    selectedPalettes.forEach(paletteId => {
+      const palette = allPalettes.find(p => p.id === paletteId);
+      if (palette) {
+        colors.push(...palette.colors);
+      }
+    });
+    return colors;
+  }, [selectedPalettes]);
 
   // Filter bead colors by name
   const filteredColors = beadColors.filter(color =>

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { PERLER_COLORS } from './data/perlerColors';
+import { useState, useEffect, useMemo } from 'react';
 import useProjectStore from './stores/projectStore';
 import useInventoryStore from './stores/inventoryStore';
 import useUIStore from './stores/uiStore';
+import usePaletteStore from './stores/paletteStore';
 import ImageUploadZone from './components/ImageUploadZone';
 import ImageDisplay from './components/ImageDisplay';
 import GridAdjustmentControls from './components/GridAdjustmentControls';
@@ -11,7 +11,6 @@ import ColorMappingDisplay from './components/ColorMappingDisplay';
 import ColorPalette from './components/ColorPalette';
 
 function App() {
-  const [perlerColors, setPerlerColors] = useState([]);
   const [beadList, setBeadList] = useState([]);
   const [totalBeads, setTotalBeads] = useState(0);
   const { setError, setLoading } = useUIStore();
@@ -22,11 +21,12 @@ function App() {
     setColorMapping: state.setColorMapping
   }));
 
-  // Load Perler colors from local data on mount
-  useEffect(() => {
-    setPerlerColors(PERLER_COLORS);
-    console.log('Loaded Perler colors:', PERLER_COLORS.length);
-  }, []);
+  const { getAvailableColors, selectedPalettes } = usePaletteStore(state => ({
+    getAvailableColors: state.getAvailableColors,
+    selectedPalettes: state.selectedPalettes
+  }));
+
+  const availableColors = useMemo(() => getAvailableColors(), [selectedPalettes]);
 
   // Calculate bead list from color mapping (mapping is done by projectStore)
   useEffect(() => {
@@ -49,7 +49,7 @@ function App() {
 
     const list = Object.entries(beadCounts)
       .map(([beadId, count]) => ({
-        color: PERLER_COLORS.find(c => c.id === beadId),
+        color: availableColors.find(c => c.id === beadId),
         count
       }))
       .filter(item => item.color)
@@ -57,7 +57,7 @@ function App() {
 
     setBeadList(list);
     setTotalBeads(Object.values(beadCounts).reduce((sum, count) => sum + count, 0));
-  }, [parsedPixels]);
+  }, [parsedPixels, availableColors]);
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -89,30 +89,6 @@ function App() {
         {uploadedImage && beadList.length > 0 && (
           <ColorMappingDisplay beadList={beadList} totalBeads={totalBeads} />
         )}
-
-        {/* Color Info Section */}
-        <div className="bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 text-white">Available Bead Colors</h2>
-          <p className="text-gray-400 mb-4">
-            Loaded {perlerColors.length} Perler bead colors
-          </p>
-          {perlerColors.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-              {perlerColors.slice(0, 14).map((color) => (
-                <div
-                  key={color.id}
-                  className="flex flex-col items-center p-2 border border-gray-600 rounded bg-gray-700/50"
-                >
-                  <div
-                    className="w-12 h-12 rounded border-2 border-gray-500"
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <span className="text-xs mt-1 text-center text-gray-300">{color.name}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       </main>
     </div>
   );

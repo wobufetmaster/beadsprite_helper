@@ -25,42 +25,40 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
         </div>
 
         {/* Bead list */}
-        <div className="space-y-2">
+        <div>
           <h3 className="text-sm font-medium text-gray-300 mb-3">Bead Shopping List</h3>
-          <div className="max-h-96 overflow-y-auto space-y-2">
-            {beadList.map(({ color, count }) => (
-              <div
-                key={color.id}
-                className="flex items-center gap-3 p-3 bg-gray-700/50 rounded border border-gray-600 hover:bg-gray-700 transition-colors"
-              >
-                {/* Color swatch */}
+          <div className="max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-3 gap-3">
+              {beadList.map(({ color, count }) => (
                 <div
-                  className="w-10 h-10 rounded border-2 border-gray-500 flex-shrink-0"
-                  style={{ backgroundColor: color.hex }}
-                  title={color.hex}
-                />
+                  key={color.id}
+                  className="flex items-center gap-3 p-3 bg-gray-700/50 rounded border border-gray-600 hover:bg-gray-700 transition-colors"
+                >
+                  {/* Color swatch */}
+                  <div
+                    className="w-12 h-12 rounded border-2 border-gray-500 flex-shrink-0"
+                    style={{ backgroundColor: color.hex }}
+                    title={color.hex}
+                  />
 
-                {/* Color info */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-100 truncate">
-                    {color.name}
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    {color.hex}
-                  </div>
-                </div>
-
-                {/* Count */}
-                <div className="flex-shrink-0">
-                  <div className="text-right">
-                    <div className="font-semibold text-gray-100">{count}</div>
+                  {/* Color info and count */}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-100 truncate">
+                      {color.name}
+                    </div>
                     <div className="text-xs text-gray-400">
-                      {((count / totalBeads) * 100).toFixed(1)}%
+                      {color.hex}
+                    </div>
+                    <div className="text-sm mt-1">
+                      <span className="font-semibold text-gray-100">{count} beads</span>
+                      <span className="text-xs text-gray-400 ml-2">
+                        ({((count / totalBeads) * 100).toFixed(1)}%)
+                      </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
