@@ -65,20 +65,30 @@ function detectEdgeRegions(beadGrid, width, height) {
   const visited = Array(height).fill(0).map(() => Array(width).fill(false));
   const backgroundMask = Array(height).fill(0).map(() => Array(width).fill(false));
 
+  // Find all edge-touching regions and track the largest one
+  let largestEdgeRegion = null;
+  let largestSize = 0;
+
   // Find all connected components
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!visited[y][x]) {
         const region = floodFill(beadGrid, visited, x, y, width, height);
 
-        // If region touches any edge, mark as background
-        if (touchesEdge(region, width, height)) {
-          region.forEach(({ x, y }) => {
-            backgroundMask[y][x] = true;
-          });
+        // If region touches edge and is larger than current largest, track it
+        if (touchesEdge(region, width, height) && region.length > largestSize) {
+          largestEdgeRegion = region;
+          largestSize = region.length;
         }
       }
     }
+  }
+
+  // Only mark the largest edge-touching region as background
+  if (largestEdgeRegion) {
+    largestEdgeRegion.forEach(({ x, y }) => {
+      backgroundMask[y][x] = true;
+    });
   }
 
   return backgroundMask;
