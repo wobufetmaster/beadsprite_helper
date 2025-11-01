@@ -74,7 +74,7 @@ cd frontend && npm run build
    - `parsedPixels` - 2D array of RGB pixels
    - `colorMapping` - Map of bead IDs to counts
    - `settings` - Color match mode, thresholds
-   - Actions: `uploadImage()`, `setParsedPixels()`, `resetProject()`
+   - Actions: `uploadImage()`, `setParsedPixels()`, `resetProject()`, `exportProject()`, `importProject()`
 
 2. **`inventoryStore`** - User's bead inventory (persisted)
    - `ownedColors` - Which bead colors the user owns
@@ -103,11 +103,13 @@ cd frontend && npm run build
 ```
 App.jsx (main container)
 ├── ImageUploadZone.jsx (drag-drop uploader)
+├── ProjectControls.jsx (save/load project as JSON)
 ├── ImageDisplay.jsx (shows uploaded image)
 ├── GridAdjustmentControls.jsx (disabled - requires backend)
 ├── PixelGridDisplay.jsx (shows pixel grid with colors)
 ├── ColorPalette.jsx (interactive color selection)
-└── ColorMappingDisplay.jsx (shopping list with bead counts)
+├── ColorMappingDisplay.jsx (shopping list with bead counts)
+└── PatternExportControls.jsx (export pattern as PNG/PDF)
 ```
 
 ## Key Implementation Details
@@ -162,6 +164,8 @@ Worktrees should be created in: `.worktrees/` (project-local, hidden)
 
 ## Design Documents
 
+- **Export/Import Features Design:** `docs/plans/2025-11-01-export-import-design.md`
+- **Export/Import Implementation:** `docs/plans/2025-11-01-export-import-implementation.md`
 - **Browser-Only Refactor Design:** `docs/plans/2025-10-31-browser-only-refactor-design.md`
 - **Implementation Plan:** `docs/plans/2025-10-31-browser-only-refactor-implementation.md`
 - **Original Design:** `docs/plans/2025-10-30-beadsprite-helper-design.md`
@@ -173,7 +177,17 @@ Worktrees should be created in: `.worktrees/` (project-local, hidden)
 - **Tailwind CSS** - Styling
 - **Zustand** - State management (with persistence middleware)
 - **culori** - Color science library (LAB, Delta E)
+- **jsPDF** - PDF generation for pattern export
 - **Konva / react-konva** - Canvas manipulation (for future grid features)
+
+## Implemented Features
+
+- **✅ Project Save/Load** - Export and import full project state as JSON
+- **✅ Pattern Export** - Export printable bead patterns as PNG or PDF with color legend
+- Color mapping with LAB color space and Delta E distance
+- Background detection and removal
+- Multi-palette support for bead color selection
+- Interactive pixel grid display with zoom and pan
 
 ## Future Enhancements
 
@@ -181,5 +195,4 @@ Per original plan, remaining features to implement:
 - Canvas workspace with Konva for visual editing
 - Enhanced color mapping with user overrides
 - Inventory management with quantity tracking
-- Project save/load functionality
 - PWA features (service workers, offline support)
