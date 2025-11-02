@@ -1,8 +1,4 @@
-import { useProjectStore } from '../stores/projectStore';
-
 export default function ColorMappingDisplay({ beadList, totalBeads }) {
-  const parsedPixels = useProjectStore(state => state.parsedPixels);
-
   if (!beadList || beadList.length === 0) {
     return null;
   }

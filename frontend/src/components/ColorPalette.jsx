@@ -5,11 +5,9 @@ import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
 
 export default function ColorPalette() {
-  const { parsedPixels, colorMapping, updateColorMapping, settings } = useProjectStore(state => ({
+  const { parsedPixels, updateColorMapping } = useProjectStore(state => ({
     parsedPixels: state.parsedPixels,
-    colorMapping: state.colorMapping,
-    updateColorMapping: state.updateColorMapping,
-    settings: state.settings
+    updateColorMapping: state.updateColorMapping
   }));
 
   const { ownedColors } = useInventoryStore(state => ({
@@ -32,7 +30,7 @@ export default function ColorPalette() {
       }
     });
     return colors;
-  }, [selectedPalettes]);
+  }, [selectedPalettes, getAllPalettes]);
   const [uniqueColors, setUniqueColors] = useState([]);
   const [colorMatches, setColorMatches] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +56,7 @@ export default function ColorPalette() {
     if (colors.length > 0 && Object.keys(colorMatches).length === 0 && beadColors.length > 0) {
       matchColors(colors);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedPixels, beadColors]);
 
   // Re-match when palette selection changes
@@ -65,26 +64,8 @@ export default function ColorPalette() {
     if (uniqueColors.length > 0 && beadColors.length > 0) {
       matchColors(uniqueColors);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPalettes]);
-
-  // Rebuild colorMatches from existing colorMapping (for page reload)
-  const rebuildColorMatches = () => {
-    if (!beadColors.length || !Object.keys(colorMapping).length) return;
-
-    const matches = {};
-    Object.entries(colorMapping).forEach(([imageColor, beadColorId]) => {
-      const beadColor = beadColors.find(c => c.id === beadColorId);
-      if (beadColor) {
-        matches[imageColor] = {
-          beadColorId: beadColor.id,
-          beadColorHex: beadColor.hex,
-          beadColorName: beadColor.name,
-          distance: 0 // Unknown distance for restored mappings
-        };
-      }
-    });
-    setColorMatches(matches);
-  };
 
   // Match colors locally (browser-only)
   const matchColors = (colors) => {
@@ -295,7 +276,7 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
       }
     });
     return colors;
-  }, [selectedPalettes]);
+  }, [selectedPalettes, getAllPalettes]);
 
   // Filter bead colors by name
   const filteredColors = beadColors.filter(color =>

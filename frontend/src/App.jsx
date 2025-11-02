@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import useProjectStore from './stores/projectStore';
-import useInventoryStore from './stores/inventoryStore';
-import useUIStore from './stores/uiStore';
 import usePaletteStore from './stores/paletteStore';
 import ImageUploadZone from './components/ImageUploadZone';
 import ImageDisplay from './components/ImageDisplay';
@@ -15,12 +13,9 @@ import PatternExportControls from './components/PatternExportControls';
 function App() {
   const [beadList, setBeadList] = useState([]);
   const [totalBeads, setTotalBeads] = useState(0);
-  const { setError, setLoading } = useUIStore();
-  const { uploadedImage, parsedPixels, settings, setColorMapping, backgroundMask, removeBackground } = useProjectStore(state => ({
+  const { uploadedImage, parsedPixels, backgroundMask, removeBackground } = useProjectStore(state => ({
     uploadedImage: state.uploadedImage,
     parsedPixels: state.parsedPixels,
-    settings: state.settings,
-    setColorMapping: state.setColorMapping,
     backgroundMask: state.backgroundMask,
     removeBackground: state.removeBackground
   }));
@@ -30,7 +25,7 @@ function App() {
     selectedPalettes: state.selectedPalettes
   }));
 
-  const availableColors = useMemo(() => getAvailableColors(), [selectedPalettes]);
+  const availableColors = useMemo(() => getAvailableColors(), [getAvailableColors, selectedPalettes]);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r, g, b) => {

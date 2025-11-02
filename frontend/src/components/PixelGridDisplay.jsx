@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
@@ -26,7 +26,6 @@ export default function PixelGridDisplay() {
   const [showMappedColors, setShowMappedColors] = useState(true);
   const [filterText, setFilterText] = useState('');
   const [mappingHistory, setMappingHistory] = useState([]);
-  const preserveSelectionRef = useRef(false);
 
   // Pegboard grid state
   const [showPegboardGrid, setShowPegboardGrid] = useState(false);
@@ -46,7 +45,7 @@ export default function PixelGridDisplay() {
       }
     });
     return colors;
-  }, [selectedPalettes]);
+  }, [selectedPalettes, getAllPalettes]);
 
   // Calculate content dimensions (excluding background if enabled)
   const contentDimensions = useMemo(() => {
@@ -104,13 +103,13 @@ export default function PixelGridDisplay() {
   const handleBeadColorSelect = (beadColorId) => {
     if (!selectedCell) return;
 
-    const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
+    const imageColorHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
 
     // Save current mapping to history for undo
-    const previousMapping = colorMapping[originalHex];
-    setMappingHistory(prev => [...prev, { hex: originalHex, previousBeadId: previousMapping }]);
+    const previousMapping = colorMapping[imageColorHex];
+    setMappingHistory(prev => [...prev, { hex: imageColorHex, previousBeadId: previousMapping }]);
 
-    updateColorMapping(originalHex, beadColorId);
+    updateColorMapping(imageColorHex, beadColorId);
   };
 
   const handleUndo = () => {
@@ -188,11 +187,11 @@ export default function PixelGridDisplay() {
 
     if (!selectedCell) return;
 
-    const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
+    const imageColorHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
 
     try {
       // Re-match just this specific color
-      const imageRgb = hexToRgb(originalHex);
+      const imageRgb = hexToRgb(imageColorHex);
       let closestBead = null;
       let minDistance = Infinity;
 
@@ -207,7 +206,7 @@ export default function PixelGridDisplay() {
       }
 
       if (closestBead) {
-        updateColorMapping(originalHex, closestBead.id);
+        updateColorMapping(imageColorHex, closestBead.id);
         // Side panel stays open for further adjustments
       }
     } catch (error) {
@@ -228,14 +227,14 @@ export default function PixelGridDisplay() {
 
   // Get the display color for a pixel (either original or mapped)
   const getDisplayColor = (pixel) => {
-    const originalHex = rgbToHex(pixel.r, pixel.g, pixel.b);
+    const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
 
     if (!showMappedColors || Object.keys(colorMapping).length === 0) {
-      return { hex: originalHex, beadName: null };
+      return { hex: pixelHex, beadName: null };
     }
 
     // Look up mapped bead color
-    const beadColorId = colorMapping[originalHex];
+    const beadColorId = colorMapping[pixelHex];
     if (beadColorId && beadColors.length > 0) {
       const beadColor = beadColors.find(c => c.id === beadColorId);
       if (beadColor) {
@@ -243,7 +242,7 @@ export default function PixelGridDisplay() {
       }
     }
 
-    return { hex: originalHex, beadName: null };
+    return { hex: pixelHex, beadName: null };
   };
 
   const hasMappedColors = Object.keys(colorMapping).length > 0;
@@ -452,7 +451,6 @@ export default function PixelGridDisplay() {
               {grid.map((row, y) =>
                 row.map((pixel, x) => {
                   const { hex, beadName } = getDisplayColor(pixel);
-                  const originalHex = rgbToHex(pixel.r, pixel.g, pixel.b);
                   const isSelected = selectedCell && selectedCell.x === x && selectedCell.y === y;
                   const isHovered = hoveredCell && hoveredCell.x === x && hoveredCell.y === y;
 
@@ -653,8 +651,8 @@ export default function PixelGridDisplay() {
 
                 {/* Selected pixel info */}
                 {(() => {
-                  const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
-                  const { hex: displayHex, beadName } = getDisplayColor(selectedCell.color);
+                  const selectedHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
+                  const { beadName } = getDisplayColor(selectedCell.color);
 
                   return (
                     <div className="mb-4 p-3 bg-gray-700/50 rounded border border-gray-600">
@@ -662,10 +660,10 @@ export default function PixelGridDisplay() {
                       <div className="flex items-center gap-3">
                         <div
                           className="w-12 h-12 rounded border-2 border-gray-500"
-                          style={{ backgroundColor: originalHex }}
+                          style={{ backgroundColor: selectedHex }}
                         />
                         <div className="text-sm">
-                          <div className="text-white font-medium">{originalHex}</div>
+                          <div className="text-white font-medium">{selectedHex}</div>
                           {beadName && (
                             <div className="text-blue-400 mt-1">Currently: {beadName}</div>
                           )}
@@ -727,12 +725,4 @@ export default function PixelGridDisplay() {
       </div>
     </div>
   );
-}
-
-// Helper function
-function rgbToHex(r, g, b) {
-  return '#' + [r, g, b].map(x => {
-    const hex = x.toString(16);
-    return hex.length === 1 ? '0' + hex : hex;
-  }).join('');
 }

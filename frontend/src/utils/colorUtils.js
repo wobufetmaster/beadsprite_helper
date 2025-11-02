@@ -1,4 +1,4 @@
-import { lab, rgb, converter, differenceCiede2000 } from 'culori';
+import { rgb, converter, differenceCiede2000 } from 'culori';
 
 // Create a converter from RGB to LAB
 const rgbToLabConverter = converter('lab');
