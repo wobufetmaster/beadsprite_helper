@@ -47,8 +47,8 @@ export default function ProjectControls() {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Project Management</h2>
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-4">
+      <h2 className="text-lg font-semibold text-white mb-3">Project Management</h2>
 
       <div className="flex gap-3">
         {/* Save Project Button */}
@@ -56,7 +56,7 @@ export default function ProjectControls() {
           onClick={handleExport}
           disabled={!parsedPixels || isLoading}
           className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700
-                     disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
+                     disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors
                      font-medium text-sm"
           title={!parsedPixels ? 'Load an image first' : 'Export project as JSON'}
         >
@@ -74,7 +74,7 @@ export default function ProjectControls() {
           />
           <div
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700
-                       disabled:bg-gray-300 cursor-pointer transition-colors
+                       disabled:bg-gray-600 cursor-pointer transition-colors
                        font-medium text-sm text-center"
           >
             Load Project
@@ -83,7 +83,7 @@ export default function ProjectControls() {
       </div>
 
       {!parsedPixels && (
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-gray-400 mt-2">
           Upload an image to enable project save
         </p>
       )}

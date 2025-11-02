@@ -287,11 +287,17 @@ const useProjectStore = create(
       // Validate and parse file
       const projectData = await importProjectFile(file);
 
+      // Regenerate beadGrid if missing (for backward compatibility)
+      let beadGrid = projectData.beadGrid;
+      if (!beadGrid && projectData.parsedPixels) {
+        beadGrid = createBeadGrid(projectData.parsedPixels.grid);
+      }
+
       // Load into store
       set({
         projectName: projectData.projectName || 'Untitled Project',
         parsedPixels: projectData.parsedPixels,
-        beadGrid: projectData.beadGrid || null,
+        beadGrid: beadGrid,
         backgroundMask: projectData.backgroundMask || null,
         removeBackground: projectData.removeBackground !== undefined ? projectData.removeBackground : true,
         colorMapping: projectData.colorMapping,

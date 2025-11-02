@@ -460,21 +460,29 @@ export default function PixelGridDisplay() {
                   const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x];
 
                   // Check if this cell is on a pegboard boundary (relative to content area)
-                  // Calculate which pegboard regions this pixel would be in
-                  const relX = x - contentDimensions.offsetX;
-                  const relY = y - contentDimensions.offsetY;
-
-                  // Determine the pegboard bounding box (may extend beyond content area)
+                  // Determine the pegboard bounding box
                   const numBoardsX = Math.ceil(contentDimensions.width / pegboardSize);
                   const numBoardsY = Math.ceil(contentDimensions.height / pegboardSize);
-                  const pegboardMinX = contentDimensions.offsetX;
-                  const pegboardMinY = contentDimensions.offsetY;
-                  const pegboardMaxX = contentDimensions.offsetX + (numBoardsX * pegboardSize) - 1;
-                  const pegboardMaxY = contentDimensions.offsetY + (numBoardsY * pegboardSize) - 1;
+                  const pegboardWidth = numBoardsX * pegboardSize;
+                  const pegboardHeight = numBoardsY * pegboardSize;
+
+                  // Center horizontally and align to bottom vertically
+                  const contentOffsetX = Math.floor((pegboardWidth - contentDimensions.width) / 2);
+                  const contentOffsetY = pegboardHeight - contentDimensions.height;
+
+                  // Pegboard area with centering/bottom-alignment
+                  const pegboardMinX = contentDimensions.offsetX - contentOffsetX;
+                  const pegboardMinY = contentDimensions.offsetY - contentOffsetY;
+                  const pegboardMaxX = pegboardMinX + pegboardWidth - 1;
+                  const pegboardMaxY = pegboardMinY + pegboardHeight - 1;
 
                   const isInPegboardArea =
                     x >= pegboardMinX && x <= pegboardMaxX &&
                     y >= pegboardMinY && y <= pegboardMaxY;
+
+                  // Calculate position relative to pegboard area origin
+                  const relX = x - pegboardMinX;
+                  const relY = y - pegboardMinY;
 
                   // Draw gridlines at pegboard intervals within the pegboard coverage area
                   const isLeftBoundary = showPegboardGrid && isInPegboardArea &&

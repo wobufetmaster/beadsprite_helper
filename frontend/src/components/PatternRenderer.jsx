@@ -20,22 +20,136 @@ export default function PatternRenderer({
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const width = beadGrid[0]?.length || 0;
-    const height = beadGrid.length;
+    const gridWidth = beadGrid[0]?.length || 0;
+    const gridHeight = beadGrid.length;
 
-    if (width === 0 || height === 0) return;
+    if (gridWidth === 0 || gridHeight === 0) return;
+
+    console.log('PatternRenderer rendering with showPegboardGrid:', showPegboardGrid);
+    console.log('Original grid dimensions:', gridWidth, 'x', gridHeight);
+
+    // Find bounding box of actual beads FIRST (before sizing canvas)
+    let minX = gridWidth, maxX = -1, minY = gridHeight, maxY = -1;
+    let hasBackgroundMask = false;
+    let width, height, offsetX, offsetY;
+    const pegboardSize = 29;
+    const padding = 5; // pixels of gray padding around pegboard sections
+
+    if (backgroundMask && removeBackground) {
+      hasBackgroundMask = true;
+      for (let y = 0; y < gridHeight; y++) {
+        for (let x = 0; x < gridWidth; x++) {
+          if (!backgroundMask[y]?.[x]) {
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+          }
+        }
+      }
+
+      // Calculate content dimensions (bounding box size)
+      const contentWidth = maxX - minX + 1;
+      const contentHeight = maxY - minY + 1;
+
+      // Calculate number of pegboards needed based on content size (like UI does)
+      const numBoardsX = Math.ceil(contentWidth / pegboardSize);
+      const numBoardsY = Math.ceil(contentHeight / pegboardSize);
+
+      // Total pegboard area dimensions
+      const pegboardWidth = numBoardsX * pegboardSize;
+      const pegboardHeight = numBoardsY * pegboardSize;
+
+      // Center horizontally and align to bottom vertically
+      const contentOffsetX = Math.floor((pegboardWidth - contentWidth) / 2);
+      const contentOffsetY = pegboardHeight - contentHeight;
+
+      // Canvas offset accounts for centering/alignment
+      offsetX = minX - padding - contentOffsetX;
+      offsetY = minY - padding - contentOffsetY;
+      width = pegboardWidth + (padding * 2);
+      height = pegboardHeight + (padding * 2);
+
+      console.log('Sprite bounds:', minX, minY, 'to', maxX, maxY);
+      console.log('Content dimensions:', contentWidth, 'x', contentHeight);
+      console.log('Pegboards needed:', numBoardsX, 'x', numBoardsY, '=', numBoardsX * numBoardsY);
+      console.log('Content offset (center/bottom):', contentOffsetX, contentOffsetY);
+      console.log('Canvas size with padding:', width, 'x', height, 'offset:', offsetX, offsetY);
+    } else {
+      minX = 0;
+      maxX = gridWidth - 1;
+      minY = 0;
+      maxY = gridHeight - 1;
+      offsetX = 0;
+      offsetY = 0;
+      width = gridWidth;
+      height = gridHeight;
+    }
 
     // Calculate pixel size for ~3000px max dimension at 300 DPI
     const maxDimension = Math.max(width, height);
     const pixelSize = Math.floor(3000 / maxDimension);
 
-    // Set canvas dimensions
+    // Set canvas dimensions to cropped size
     canvas.width = width * pixelSize;
     canvas.height = height * pixelSize;
 
-    // Fill white background
-    ctx.fillStyle = '#FFFFFF';
+    // Fill gray background (for padding area)
+    ctx.fillStyle = '#E5E5E5';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Optional: Draw pegboard BEFORE beads (so it appears behind)
+    if (showPegboardGrid) {
+      console.log('Drawing pegboard. Canvas size:', width, 'x', height, 'pixelSize:', pixelSize);
+      console.log('Drawing with offset:', offsetX, offsetY);
+
+      // Draw pegboard holes for entire pegboard area (excluding padding)
+      for (let y = padding; y < height - padding; y++) {
+        for (let x = padding; x < width - padding; x++) {
+          const centerX = x * pixelSize + pixelSize / 2;
+          const centerY = y * pixelSize + pixelSize / 2;
+          const holeRadius = Math.max(2, pixelSize / 8);
+
+          // Draw pegboard hole (light gray circle)
+          ctx.fillStyle = 'rgba(180, 180, 180, 0.4)';
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, holeRadius, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Draw darker outline for the hole
+          ctx.strokeStyle = 'rgba(140, 140, 140, 0.5)';
+          ctx.lineWidth = Math.max(1, pixelSize / 30);
+          ctx.stroke();
+        }
+      }
+
+      // Draw darker lines at 29x29 pegboard boundaries
+      ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
+      ctx.lineWidth = Math.max(2, pixelSize / 8);
+
+      // Pegboard area extends from the content origin
+      // Draw vertical lines - every 29 pixels within pegboard area
+      for (let boardX = 0; boardX <= Math.ceil((width - padding * 2) / pegboardSize); boardX++) {
+        const canvasX = padding + (boardX * pegboardSize);
+        if (canvasX <= width - padding) {
+          ctx.beginPath();
+          ctx.moveTo(canvasX * pixelSize, padding * pixelSize);
+          ctx.lineTo(canvasX * pixelSize, (height - padding) * pixelSize);
+          ctx.stroke();
+        }
+      }
+
+      // Draw horizontal lines - every 29 pixels within pegboard area
+      for (let boardY = 0; boardY <= Math.ceil((height - padding * 2) / pegboardSize); boardY++) {
+        const canvasY = padding + (boardY * pegboardSize);
+        if (canvasY <= height - padding) {
+          ctx.beginPath();
+          ctx.moveTo(padding * pixelSize, canvasY * pixelSize);
+          ctx.lineTo((width - padding) * pixelSize, canvasY * pixelSize);
+          ctx.stroke();
+        }
+      }
+    }
 
     // Create bead color lookup map
     const beadColorMap = {};
@@ -44,20 +158,26 @@ export default function PatternRenderer({
     });
 
     // Render each bead
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
+    for (let gridY = offsetY + padding; gridY < offsetY + height - padding; gridY++) {
+      for (let gridX = offsetX + padding; gridX < offsetX + width - padding; gridX++) {
+        // Skip if outside grid bounds
+        if (gridY < 0 || gridY >= gridHeight || gridX < 0 || gridX >= gridWidth) continue;
+
         // Skip background pixels if removeBackground is true
-        if (backgroundMask && removeBackground && backgroundMask[y]?.[x]) {
+        if (backgroundMask && removeBackground && backgroundMask[gridY]?.[gridX]) {
           continue;
         }
 
-        const beadId = beadGrid[y][x];
+        const beadId = beadGrid[gridY][gridX];
         const beadHex = beadColorMap[beadId];
 
         if (!beadHex) continue;
 
-        const posX = x * pixelSize;
-        const posY = y * pixelSize;
+        // Calculate position on the canvas (including padding)
+        const canvasX = gridX - offsetX;
+        const canvasY = gridY - offsetY;
+        const posX = canvasX * pixelSize;
+        const posY = canvasY * pixelSize;
 
         if (beadShape === 'circle') {
           // Draw circular bead with radial gradient for depth
@@ -103,33 +223,6 @@ export default function PatternRenderer({
       }
     }
 
-    // Optional: Draw pegboard grid overlay
-    if (showPegboardGrid) {
-      ctx.strokeStyle = '#0066CC';
-      ctx.lineWidth = Math.max(2, pixelSize / 10);
-      ctx.globalAlpha = 0.3;
-
-      // Pegboard squares are typically 29x29 beads
-      const pegboardSize = 29;
-
-      // Draw vertical lines
-      for (let x = pegboardSize; x < width; x += pegboardSize) {
-        ctx.beginPath();
-        ctx.moveTo(x * pixelSize, 0);
-        ctx.lineTo(x * pixelSize, canvas.height);
-        ctx.stroke();
-      }
-
-      // Draw horizontal lines
-      for (let y = pegboardSize; y < height; y += pegboardSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y * pixelSize);
-        ctx.lineTo(canvas.width, y * pixelSize);
-        ctx.stroke();
-      }
-
-      ctx.globalAlpha = 1.0;
-    }
 
     // Notify parent that canvas is ready
     if (onCanvasReady) {

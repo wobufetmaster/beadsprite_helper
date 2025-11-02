@@ -27,6 +27,11 @@ export default function PatternExportControls() {
     try {
       setIsExporting(true);
 
+      // Wait a moment for canvas to be ready with current settings
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log('Exporting with pegboard grid:', showPegboardGrid);
+
       if (exportFormat === 'png') {
         await exportPNG(canvasRef.current);
         console.log('Pattern exported as PNG');
@@ -46,13 +51,13 @@ export default function PatternExportControls() {
   const hasProject = parsedPixels && beadGrid;
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Export Pattern for Printing</h2>
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-4">
+      <h2 className="text-lg font-semibold text-white mb-3">Export Pattern for Printing</h2>
 
       <div className="space-y-4">
         {/* Format Selection */}
         <div>
-          <label htmlFor="export-format" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="export-format" className="block text-sm font-medium text-gray-300 mb-1">
             Export Format
           </label>
           <select
@@ -60,8 +65,9 @@ export default function PatternExportControls() {
             value={exportFormat}
             onChange={(e) => setExportFormat(e.target.value)}
             disabled={!hasProject || isLoading || isExporting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none
-                     focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none
+                     focus:ring-2 focus:ring-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed
+                     text-white"
           >
             <option value="png">PNG (Image only)</option>
             <option value="pdf">PDF (Pattern + Color Legend)</option>
@@ -70,7 +76,7 @@ export default function PatternExportControls() {
 
         {/* Bead Shape Selection */}
         <div>
-          <label htmlFor="bead-shape" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="bead-shape" className="block text-sm font-medium text-gray-300 mb-1">
             Bead Display
           </label>
           <select
@@ -78,8 +84,9 @@ export default function PatternExportControls() {
             value={beadShape}
             onChange={(e) => setBeadShape(e.target.value)}
             disabled={!hasProject || isLoading || isExporting}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none
-                     focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none
+                     focus:ring-2 focus:ring-blue-500 disabled:bg-gray-600 disabled:cursor-not-allowed
+                     text-white"
           >
             <option value="square">Square Pixels</option>
             <option value="circle">Circular Beads</option>
@@ -94,10 +101,10 @@ export default function PatternExportControls() {
             checked={showPegboardGrid}
             onChange={(e) => setShowPegboardGrid(e.target.checked)}
             disabled={!hasProject || isLoading || isExporting}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500
+            className="w-4 h-4 text-blue-600 border-gray-600 rounded focus:ring-blue-500
                      disabled:cursor-not-allowed"
           />
-          <label htmlFor="pegboard-grid" className="ml-2 text-sm text-gray-700">
+          <label htmlFor="pegboard-grid" className="ml-2 text-sm text-gray-300">
             Include pegboard grid overlay (29×29 sections)
           </label>
         </div>
@@ -107,7 +114,7 @@ export default function PatternExportControls() {
           onClick={handleExport}
           disabled={!hasProject || isLoading || isExporting}
           className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700
-                   disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors
+                   disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors
                    font-medium text-sm"
           title={!hasProject ? 'Load an image first' : 'Export pattern'}
         >
@@ -115,13 +122,13 @@ export default function PatternExportControls() {
         </button>
 
         {!hasProject && (
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-gray-400 text-center">
             Upload and process an image to enable pattern export
           </p>
         )}
 
         {hasProject && exportFormat === 'pdf' && (
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-gray-400 text-center">
             PDF will include the pattern on page 1 and color legend on page 2
           </p>
         )}
