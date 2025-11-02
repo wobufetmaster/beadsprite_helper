@@ -46,13 +46,14 @@ export async function exportPNG(canvas, filename) {
 }
 
 /**
- * Export pattern and legend as PDF file
- * @param {HTMLCanvasElement} canvas - Canvas element with rendered pattern
+ * Export pattern and legend as PDF file with labeled grid
+ * @param {HTMLCanvasElement} canvas - Canvas element with labeled pattern
  * @param {Array} legendData - Array of {beadId, beadName, hex, count} objects
+ * @param {Object} colorLabels - Map of beadId to label codes
  * @param {string} filename - Optional custom filename
  * @returns {Promise<{success: boolean, filename: string}>}
  */
-export async function exportPDF(canvas, legendData, filename) {
+export async function exportPDF(canvas, legendData, colorLabels, filename) {
   try {
     // Generate filename with date
     const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
@@ -93,7 +94,7 @@ export async function exportPDF(canvas, legendData, filename) {
 
     pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
 
-    // Page 2: Color Legend
+    // Page 2: Color Legend with codes
     pdf.addPage();
 
     // Title
@@ -108,8 +109,9 @@ export async function exportPDF(canvas, legendData, filename) {
 
     // Column headers
     pdf.setFont('helvetica', 'bold');
-    pdf.text('Color', margin + 15, yPos);
-    pdf.text('Name', margin + 40, yPos);
+    pdf.text('Code', margin + 5, yPos);
+    pdf.text('Color', margin + 25, yPos);
+    pdf.text('Name', margin + 50, yPos);
     pdf.text('Count', pageWidth - margin - 25, yPos);
     yPos += 2;
 
@@ -118,12 +120,18 @@ export async function exportPDF(canvas, legendData, filename) {
     pdf.line(margin, yPos, pageWidth - margin, yPos);
     yPos += 5;
 
+    // Add labels to legend data and sort by label code
+    const labeledLegend = legendData.map(item => ({
+      ...item,
+      label: colorLabels[item.beadId] || '??'
+    })).sort((a, b) => a.label.localeCompare(b.label));
+
     // Legend rows
     pdf.setFont('helvetica', 'normal');
     const rowHeight = 8;
     const swatchSize = 6;
 
-    for (const item of legendData) {
+    for (const item of labeledLegend) {
       // Check if we need a new page
       if (yPos + rowHeight > pageHeight - margin) {
         pdf.addPage();
@@ -131,8 +139,9 @@ export async function exportPDF(canvas, legendData, filename) {
 
         // Repeat header on new page
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Color', margin + 15, yPos);
-        pdf.text('Name', margin + 40, yPos);
+        pdf.text('Code', margin + 5, yPos);
+        pdf.text('Color', margin + 25, yPos);
+        pdf.text('Name', margin + 50, yPos);
         pdf.text('Count', pageWidth - margin - 25, yPos);
         yPos += 2;
         pdf.line(margin, yPos, pageWidth - margin, yPos);
@@ -140,18 +149,23 @@ export async function exportPDF(canvas, legendData, filename) {
         pdf.setFont('helvetica', 'normal');
       }
 
+      // Draw label code
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(item.label, margin + 5, yPos);
+      pdf.setFont('helvetica', 'normal');
+
       // Draw color swatch
       pdf.setFillColor(item.hex);
-      pdf.rect(margin + 5, yPos - swatchSize + 1, swatchSize, swatchSize, 'F');
+      pdf.rect(margin + 20, yPos - swatchSize + 1, swatchSize, swatchSize, 'F');
 
       // Draw swatch border
       pdf.setDrawColor(0, 0, 0);
       pdf.setLineWidth(0.2);
-      pdf.rect(margin + 5, yPos - swatchSize + 1, swatchSize, swatchSize, 'S');
+      pdf.rect(margin + 20, yPos - swatchSize + 1, swatchSize, swatchSize, 'S');
 
       // Draw text
       pdf.setTextColor(0, 0, 0);
-      pdf.text(item.beadName, margin + 15, yPos);
+      pdf.text(item.beadName, margin + 30, yPos);
       pdf.text(item.count.toString(), pageWidth - margin - 25, yPos, { align: 'right' });
 
       yPos += rowHeight;
@@ -161,7 +175,7 @@ export async function exportPDF(canvas, legendData, filename) {
     yPos += 5;
     pdf.setFont('helvetica', 'bold');
     const totalCount = legendData.reduce((sum, item) => sum + item.count, 0);
-    pdf.text('Total Beads:', margin + 40, yPos);
+    pdf.text('Total Beads:', margin + 50, yPos);
     pdf.text(totalCount.toString(), pageWidth - margin - 25, yPos, { align: 'right' });
 
     // Save PDF

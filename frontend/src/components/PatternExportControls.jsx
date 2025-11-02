@@ -2,7 +2,9 @@ import { useState, useRef } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import { useUIStore } from '../stores/uiStore';
 import PatternRenderer from './PatternRenderer';
+import LabeledPatternRenderer from './LabeledPatternRenderer';
 import { exportPNG, exportPDF, generateLegendData } from '../services/patternExporter';
+import { generateColorLabels } from '../utils/labelGenerator';
 
 export default function PatternExportControls() {
   const { beadGrid, backgroundMask, removeBackground, parsedPixels } = useProjectStore();
@@ -13,13 +15,19 @@ export default function PatternExportControls() {
   const [showPegboardGrid, setShowPegboardGrid] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const canvasRef = useRef(null);
+  const labeledCanvasRef = useRef(null);
+  const [colorLabels, setColorLabels] = useState(null);
 
   const handleCanvasReady = (canvas) => {
     canvasRef.current = canvas;
   };
 
+  const handleLabeledCanvasReady = (canvas) => {
+    labeledCanvasRef.current = canvas;
+  };
+
   const handleExport = async () => {
-    if (!canvasRef.current || !beadGrid) {
+    if (!beadGrid) {
       alert('No pattern to export. Please upload an image first.');
       return;
     }
@@ -27,18 +35,32 @@ export default function PatternExportControls() {
     try {
       setIsExporting(true);
 
-      // Wait a moment for canvas to be ready with current settings
+      // Wait a moment for canvas to be ready
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      console.log('Exporting with pegboard grid:', showPegboardGrid);
-
       if (exportFormat === 'png') {
+        if (!canvasRef.current) {
+          alert('Pattern canvas not ready. Please try again.');
+          return;
+        }
         await exportPNG(canvasRef.current);
         console.log('Pattern exported as PNG');
       } else if (exportFormat === 'pdf') {
+        // Generate legend data and labels
         const legendData = generateLegendData(beadGrid, backgroundMask, removeBackground);
-        await exportPDF(canvasRef.current, legendData);
-        console.log('Pattern exported as PDF');
+        const labels = generateColorLabels(legendData);
+        setColorLabels(labels);
+
+        // Wait for labeled canvas to render
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        if (!labeledCanvasRef.current) {
+          alert('Labeled pattern canvas not ready. Please try again.');
+          return;
+        }
+
+        await exportPDF(labeledCanvasRef.current, legendData, labels);
+        console.log('Pattern exported as PDF with labels');
       }
     } catch (error) {
       console.error('Export failed:', error);
@@ -143,6 +165,19 @@ export default function PatternExportControls() {
           beadShape={beadShape}
           showPegboardGrid={showPegboardGrid}
           onCanvasReady={handleCanvasReady}
+        />
+      )}
+
+      {/* Labeled PatternRenderer for PDF exports */}
+      {beadGrid && colorLabels && (
+        <LabeledPatternRenderer
+          beadGrid={beadGrid}
+          colorLabels={colorLabels}
+          backgroundMask={backgroundMask}
+          removeBackground={removeBackground}
+          beadShape={beadShape}
+          showPegboardGrid={showPegboardGrid}
+          onCanvasReady={handleLabeledCanvasReady}
         />
       )}
     </div>
