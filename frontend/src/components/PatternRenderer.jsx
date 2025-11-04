@@ -122,8 +122,8 @@ export default function PatternRenderer({
       }
 
       // Draw darker lines at 29x29 pegboard boundaries
-      ctx.strokeStyle = 'rgba(100, 100, 100, 0.6)';
-      ctx.lineWidth = Math.max(2, pixelSize / 8);
+      ctx.strokeStyle = '#888888';
+      ctx.lineWidth = Math.max(3, pixelSize / 6);
 
       // Pegboard area extends from the content origin
       // Draw vertical lines - every 29 pixels within pegboard area

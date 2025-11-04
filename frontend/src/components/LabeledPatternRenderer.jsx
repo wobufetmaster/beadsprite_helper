@@ -133,25 +133,19 @@ export default function LabeledPatternRenderer({
       }
     }
 
-    // Draw pegboard grid if enabled
+    // Draw pegboard grid if enabled (29x29 bead sections)
     if (showPegboardGrid) {
       const pegboardSize = 29;
-      const padding = 5;
 
-      ctx.strokeStyle = '#666666';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#888888';
+      ctx.lineWidth = 3;
 
       // Draw vertical lines
       for (let x = pegboardSize; x < width; x += pegboardSize) {
         const px = x * pixelSize;
         ctx.beginPath();
-        ctx.moveTo(px - padding, 0);
-        ctx.lineTo(px - padding, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(px + padding, 0);
-        ctx.lineTo(px + padding, canvas.height);
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, canvas.height);
         ctx.stroke();
       }
 
@@ -159,13 +153,8 @@ export default function LabeledPatternRenderer({
       for (let y = pegboardSize; y < height; y += pegboardSize) {
         const py = y * pixelSize;
         ctx.beginPath();
-        ctx.moveTo(0, py - padding);
-        ctx.lineTo(canvas.width, py - padding);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, py + padding);
-        ctx.lineTo(canvas.width, py + padding);
+        ctx.moveTo(0, py);
+        ctx.lineTo(canvas.width, py);
         ctx.stroke();
       }
     }

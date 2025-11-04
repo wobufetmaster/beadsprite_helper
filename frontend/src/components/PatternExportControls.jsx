@@ -7,7 +7,7 @@ import { exportPNG, exportPDF, generateLegendData } from '../services/patternExp
 import { generateColorLabels } from '../utils/labelGenerator';
 
 export default function PatternExportControls() {
-  const { beadGrid, backgroundMask, removeBackground, parsedPixels } = useProjectStore();
+  const { beadGrid, backgroundMask, removeBackground, parsedPixels, colorMapping } = useProjectStore();
   const { isLoading } = useUIStore();
 
   const [exportFormat, setExportFormat] = useState('png');
@@ -17,6 +17,31 @@ export default function PatternExportControls() {
   const canvasRef = useRef(null);
   const labeledCanvasRef = useRef(null);
   const [colorLabels, setColorLabels] = useState(null);
+  const [currentBeadGrid, setCurrentBeadGrid] = useState(null);
+
+  // Helper to rebuild beadGrid from current colorMapping (respects user substitutions)
+  const rebuildBeadGridFromMapping = (parsedPixels, colorMapping) => {
+    if (!parsedPixels || !colorMapping) return null;
+
+    const rgbToHex = (r, g, b) => {
+      return '#' + [r, g, b].map(x => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      }).join('');
+    };
+
+    const newGrid = [];
+    for (const row of parsedPixels.grid) {
+      const beadRow = [];
+      for (const pixel of row) {
+        const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
+        const beadId = colorMapping[pixelHex];
+        beadRow.push(beadId || null);
+      }
+      newGrid.push(beadRow);
+    }
+    return newGrid;
+  };
 
   const handleCanvasReady = (canvas) => {
     canvasRef.current = canvas;
@@ -27,13 +52,17 @@ export default function PatternExportControls() {
   };
 
   const handleExport = async () => {
-    if (!beadGrid) {
+    if (!beadGrid && !parsedPixels) {
       alert('No pattern to export. Please upload an image first.');
       return;
     }
 
     try {
       setIsExporting(true);
+
+      // Rebuild beadGrid from current colorMapping to respect user substitutions
+      const rebuiltGrid = rebuildBeadGridFromMapping(parsedPixels, colorMapping) || beadGrid;
+      setCurrentBeadGrid(rebuiltGrid);
 
       // Wait a moment for canvas to be ready
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -46,8 +75,8 @@ export default function PatternExportControls() {
         await exportPNG(canvasRef.current);
         console.log('Pattern exported as PNG');
       } else if (exportFormat === 'pdf') {
-        // Generate legend data and labels
-        const legendData = generateLegendData(beadGrid, backgroundMask, removeBackground);
+        // Generate legend data and labels using current beadGrid
+        const legendData = generateLegendData(rebuiltGrid, backgroundMask, removeBackground);
         const labels = generateColorLabels(legendData);
         setColorLabels(labels);
 
@@ -67,6 +96,7 @@ export default function PatternExportControls() {
       alert(`Failed to export pattern: ${error.message}`);
     } finally {
       setIsExporting(false);
+      setCurrentBeadGrid(null); // Clear after export
     }
   };
 
@@ -157,9 +187,9 @@ export default function PatternExportControls() {
       </div>
 
       {/* Hidden PatternRenderer component */}
-      {beadGrid && (
+      {(currentBeadGrid || beadGrid) && (
         <PatternRenderer
-          beadGrid={beadGrid}
+          beadGrid={currentBeadGrid || beadGrid}
           backgroundMask={backgroundMask}
           removeBackground={removeBackground}
           beadShape={beadShape}
@@ -169,9 +199,9 @@ export default function PatternExportControls() {
       )}
 
       {/* Labeled PatternRenderer for PDF exports */}
-      {beadGrid && colorLabels && (
+      {(currentBeadGrid || beadGrid) && colorLabels && (
         <LabeledPatternRenderer
-          beadGrid={beadGrid}
+          beadGrid={currentBeadGrid || beadGrid}
           colorLabels={colorLabels}
           backgroundMask={backgroundMask}
           removeBackground={removeBackground}
