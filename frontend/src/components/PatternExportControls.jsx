@@ -12,7 +12,8 @@ export default function PatternExportControls() {
 
   const [exportFormat, setExportFormat] = useState('png');
   const [beadShape, setBeadShape] = useState('square');
-  const [showPegboardGrid, setShowPegboardGrid] = useState(false);
+  const [showPegboardGrid, setShowPegboardGrid] = useState(true);
+  const [pegboardSize, setPegboardSize] = useState(29);
   const [isExporting, setIsExporting] = useState(false);
   const canvasRef = useRef(null);
   const labeledCanvasRef = useRef(null);
@@ -157,9 +158,68 @@ export default function PatternExportControls() {
                      disabled:cursor-not-allowed"
           />
           <label htmlFor="pegboard-grid" className="ml-2 text-sm text-gray-300">
-            Include pegboard grid overlay (29×29 sections)
+            Include pegboard grid overlay
           </label>
         </div>
+
+        {/* Pegboard Size Selection */}
+        {showPegboardGrid && (
+          <div className="pl-6 space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Pegboard Size
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPegboardSize(29)}
+                disabled={!hasProject || isLoading || isExporting}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors
+                  ${pegboardSize === 29
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }
+                  disabled:bg-gray-600 disabled:cursor-not-allowed`}
+              >
+                29×29
+              </button>
+              <button
+                onClick={() => setPegboardSize(50)}
+                disabled={!hasProject || isLoading || isExporting}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors
+                  ${pegboardSize === 50
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }
+                  disabled:bg-gray-600 disabled:cursor-not-allowed`}
+              >
+                50×50
+              </button>
+              <button
+                onClick={() => setPegboardSize(57)}
+                disabled={!hasProject || isLoading || isExporting}
+                className={`px-3 py-1 rounded text-sm font-medium transition-colors
+                  ${pegboardSize === 57
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }
+                  disabled:bg-gray-600 disabled:cursor-not-allowed`}
+              >
+                57×57
+              </button>
+              <input
+                type="number"
+                value={pegboardSize}
+                onChange={(e) => setPegboardSize(parseInt(e.target.value) || 29)}
+                disabled={!hasProject || isLoading || isExporting}
+                min="1"
+                max="200"
+                className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm
+                         focus:outline-none focus:ring-2 focus:ring-blue-500
+                         disabled:bg-gray-600 disabled:cursor-not-allowed"
+                placeholder="Custom"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Export Button */}
         <button
@@ -194,6 +254,7 @@ export default function PatternExportControls() {
           removeBackground={removeBackground}
           beadShape={beadShape}
           showPegboardGrid={showPegboardGrid}
+          pegboardSize={pegboardSize}
           onCanvasReady={handleCanvasReady}
         />
       )}
@@ -207,6 +268,7 @@ export default function PatternExportControls() {
           removeBackground={removeBackground}
           beadShape={beadShape}
           showPegboardGrid={showPegboardGrid}
+          pegboardSize={pegboardSize}
           onCanvasReady={handleLabeledCanvasReady}
         />
       )}

@@ -13,6 +13,7 @@ export default function LabeledPatternRenderer({
   removeBackground,
   beadShape = 'square',
   showPegboardGrid = false,
+  pegboardSize = 29,
   onCanvasReady,
 }) {
   const canvasRef = useRef(null);
@@ -133,10 +134,8 @@ export default function LabeledPatternRenderer({
       }
     }
 
-    // Draw pegboard grid if enabled (29x29 bead sections)
+    // Draw pegboard grid if enabled
     if (showPegboardGrid) {
-      const pegboardSize = 29;
-
       ctx.strokeStyle = '#888888';
       ctx.lineWidth = 3;
 
@@ -163,7 +162,7 @@ export default function LabeledPatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, onCanvasReady]);
+  }, [beadGrid, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
 
   return (
     <canvas

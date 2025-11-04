@@ -11,6 +11,7 @@ export default function PatternRenderer({
   removeBackground,
   beadShape = 'square',
   showPegboardGrid = false,
+  pegboardSize = 29,
   onCanvasReady,
 }) {
   const canvasRef = useRef(null);
@@ -31,7 +32,6 @@ export default function PatternRenderer({
     // Find bounding box of actual beads FIRST (before sizing canvas)
     let minX = gridWidth, maxX = -1, minY = gridHeight, maxY = -1;
     let width, height, offsetX, offsetY;
-    const pegboardSize = 29;
     const padding = 5; // pixels of gray padding around pegboard sections
 
     if (backgroundMask && removeBackground) {
@@ -226,7 +226,7 @@ export default function PatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, backgroundMask, removeBackground, beadShape, showPegboardGrid, onCanvasReady]);
+  }, [beadGrid, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
 
   return (
     <canvas
