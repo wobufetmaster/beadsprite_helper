@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import usePaletteStore from '../stores/paletteStore';
 import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
+import CanvasPixelGrid from './CanvasPixelGrid';
 
 export default function PixelGridDisplay() {
   const { parsedPixels, gridInfo, colorMapping, updateColorMapping, backgroundMask, removeBackground, toggleBackgroundRemoval } = useProjectStore(state => ({
@@ -438,108 +439,27 @@ export default function PixelGridDisplay() {
           })()}
         </div>
 
-        {/* Interactive pixel grid */}
-        <div className="flex justify-center items-center bg-gray-900/50 rounded p-4 overflow-auto">
-          <div className="relative inline-block">
-            <div
-              className="inline-grid gap-0"
-              style={{
-                gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-                gridTemplateRows: `repeat(${height}, ${cellSize}px)`,
-              }}
-            >
-              {grid.map((row, y) =>
-                row.map((pixel, x) => {
-                  const { hex, beadName } = getDisplayColor(pixel);
-                  const isSelected = selectedCell && selectedCell.x === x && selectedCell.y === y;
-                  const isHovered = hoveredCell && hoveredCell.x === x && hoveredCell.y === y;
-
-                  // Check if this pixel is background
-                  const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x];
-
-                  // Check if this cell is on a pegboard boundary (relative to content area)
-                  // Determine the pegboard bounding box
-                  const numBoardsX = Math.ceil(contentDimensions.width / pegboardSize);
-                  const numBoardsY = Math.ceil(contentDimensions.height / pegboardSize);
-                  const pegboardWidth = numBoardsX * pegboardSize;
-                  const pegboardHeight = numBoardsY * pegboardSize;
-
-                  // Center horizontally and align to bottom vertically
-                  const contentOffsetX = Math.floor((pegboardWidth - contentDimensions.width) / 2);
-                  const contentOffsetY = pegboardHeight - contentDimensions.height;
-
-                  // Pegboard area with centering/bottom-alignment
-                  const pegboardMinX = contentDimensions.offsetX - contentOffsetX;
-                  const pegboardMinY = contentDimensions.offsetY - contentOffsetY;
-                  const pegboardMaxX = pegboardMinX + pegboardWidth - 1;
-                  const pegboardMaxY = pegboardMinY + pegboardHeight - 1;
-
-                  const isInPegboardArea =
-                    x >= pegboardMinX && x <= pegboardMaxX &&
-                    y >= pegboardMinY && y <= pegboardMaxY;
-
-                  // Calculate position relative to pegboard area origin
-                  const relX = x - pegboardMinX;
-                  const relY = y - pegboardMinY;
-
-                  // Draw gridlines at pegboard intervals within the pegboard coverage area
-                  const isLeftBoundary = showPegboardGrid && isInPegboardArea &&
-                    (relX >= 0 && relX % pegboardSize === 0);
-                  const isTopBoundary = showPegboardGrid && isInPegboardArea &&
-                    (relY >= 0 && relY % pegboardSize === 0);
-                  const isRightBoundary = showPegboardGrid && isInPegboardArea &&
-                    (x === pegboardMaxX);
-                  const isBottomBoundary = showPegboardGrid && isInPegboardArea &&
-                    (y === pegboardMaxY);
-
-                  const beadStyle = beadShape === 'circle'
-                    ? {
-                        width: `${cellSize}px`,
-                        height: `${cellSize}px`,
-                        borderRadius: '50%',
-                        background: isBackground
-                          ? 'rgba(100, 100, 100, 0.3)'
-                          : `radial-gradient(circle at center, transparent 0%, transparent 35%, ${hex} 35%, ${hex} 100%)`,
-                        boxSizing: 'border-box',
-                        border: isTopBoundary || isLeftBoundary || isRightBoundary || isBottomBoundary
-                          ? '3px solid rgba(59, 130, 246, 0.8)'
-                          : '1px solid rgba(107, 114, 128, 0.3)',
-                        boxShadow: isBackground ? 'none' : `inset 0 0 ${cellSize * 0.15}px rgba(0,0,0,0.3)`,
-                        opacity: isBackground ? 0.5 : 1,
-                      }
-                    : {
-                        width: `${cellSize}px`,
-                        height: `${cellSize}px`,
-                        backgroundColor: isBackground ? 'rgba(100, 100, 100, 0.3)' : hex,
-                        boxSizing: 'border-box',
-                        borderTop: isTopBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
-                        borderLeft: isLeftBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
-                        borderRight: isRightBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
-                        borderBottom: isBottomBoundary ? '2px solid rgba(59, 130, 246, 0.9)' : '1px solid rgba(107, 114, 128, 0.5)',
-                        opacity: isBackground ? 0.5 : 1,
-                      };
-
-                  return (
-                    <button
-                      key={`${x}-${y}`}
-                      className={`
-                        transition-all cursor-pointer
-                        hover:border-white hover:z-10 hover:scale-110
-                        ${isSelected ? 'ring-2 ring-blue-400 z-20' : ''}
-                        ${isHovered ? 'border-white' : ''}
-                      `}
-                      style={beadStyle}
-                      onClick={() => handleCellClick(x, y, pixel)}
-                      onMouseEnter={() => handleCellHover(x, y, pixel)}
-                      onMouseLeave={() => setHoveredCell(null)}
-                      title={isBackground ? `Background pixel (${x}, ${y})` : (beadName ? `${beadName} (${hex})` : `(${x}, ${y}): ${hex}`)}
-                    />
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
+        {/* Interactive pixel grid - Canvas-based for performance */}
+        <CanvasPixelGrid
+          grid={grid}
+          width={width}
+          height={height}
+          cellSize={cellSize}
+          colorMapping={colorMapping}
+          beadColors={beadColors}
+          showMappedColors={showMappedColors}
+          beadShape={beadShape}
+          showPegboardGrid={showPegboardGrid}
+          pegboardSize={pegboardSize}
+          contentDimensions={contentDimensions}
+          backgroundMask={backgroundMask}
+          removeBackground={removeBackground}
+          selectedCell={selectedCell}
+          hoveredCell={hoveredCell}
+          onCellClick={handleCellClick}
+          onCellHover={handleCellHover}
+          onCellLeave={() => setHoveredCell(null)}
+        />
 
         {/* Display info */}
         <div className="mt-4 text-xs text-gray-400 text-center">

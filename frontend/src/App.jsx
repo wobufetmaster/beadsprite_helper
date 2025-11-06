@@ -20,12 +20,11 @@ function App() {
     removeBackground: state.removeBackground
   }));
 
-  const { getAvailableColors, selectedPalettes } = usePaletteStore(state => ({
-    getAvailableColors: state.getAvailableColors,
-    selectedPalettes: state.selectedPalettes
+  const { getAvailableColors } = usePaletteStore(state => ({
+    getAvailableColors: state.getAvailableColors
   }));
 
-  const availableColors = useMemo(() => getAvailableColors(), [getAvailableColors, selectedPalettes]);
+  const availableColors = useMemo(() => getAvailableColors(), [getAvailableColors]);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r, g, b) => {
@@ -35,17 +34,15 @@ function App() {
     }).join('');
   };
 
-  // Calculate bead list from color mapping (mapping is done by projectStore)
-  useEffect(() => {
+  // Calculate bead list from color mapping (memoized for performance)
+  const { beadList: calculatedBeadList, totalBeads: calculatedTotalBeads } = useMemo(() => {
     if (!parsedPixels) {
-      setBeadList([]);
-      setTotalBeads(0);
-      return;
+      return { beadList: [], totalBeads: 0 };
     }
 
     const colorMapping = useProjectStore.getState().colorMapping;
     if (!colorMapping || Object.keys(colorMapping).length === 0) {
-      return;
+      return { beadList: [], totalBeads: 0 };
     }
 
     // Count beads by iterating through the pixel grid
@@ -78,9 +75,14 @@ function App() {
       .filter(item => item.color)
       .sort((a, b) => b.count - a.count);
 
-    setBeadList(list);
-    setTotalBeads(total);
+    return { beadList: list, totalBeads: total };
   }, [parsedPixels, availableColors, backgroundMask, removeBackground]);
+
+  // Update state when calculations change
+  useEffect(() => {
+    setBeadList(calculatedBeadList);
+    setTotalBeads(calculatedTotalBeads);
+  }, [calculatedBeadList, calculatedTotalBeads]);
 
   return (
     <div className="min-h-screen bg-gray-900">
