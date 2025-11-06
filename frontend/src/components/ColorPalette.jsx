@@ -36,6 +36,7 @@ export default function ColorPalette() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedColor, setSelectedColor] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Extract unique colors from parsed pixels
   useEffect(() => {
@@ -165,26 +166,58 @@ export default function ColorPalette() {
 
   if (isLoading) {
     return (
-      <div className="w-full bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-        <h2 className="text-lg font-semibold mb-4 text-white">Color Palette</h2>
-        <div className="text-center text-gray-400 py-8">
-          Matching colors to beads...
-        </div>
+      <div className="w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full p-6 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+        >
+          <h2 className="text-lg font-semibold text-white">Color Palette</h2>
+          <svg
+            className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        {isExpanded && (
+          <div className="px-6 pb-6">
+            <div className="text-center text-gray-400 py-8">
+              Matching colors to beads...
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="w-full bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-white">Color Palette</h2>
-        <div className="text-sm text-gray-400">
-          {uniqueColors.length} unique colors
+    <div className="w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-6 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-white">Color Palette</h2>
+          <div className="text-sm text-gray-400">
+            {uniqueColors.length} unique colors
+          </div>
         </div>
-      </div>
+        <svg
+          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
-      {/* Color matches */}
-      <div className="grid grid-cols-3 gap-3">
+      {isExpanded && (
+        <div className="px-6 pb-6">
+          {/* Color matches */}
+          <div className="grid grid-cols-3 gap-3">
         {uniqueColors.map(imageColor => {
           const match = colorMatches[imageColor];
           const count = getColorCount(imageColor);
@@ -237,7 +270,9 @@ export default function ColorPalette() {
             </div>
           );
         })}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Color picker modal */}
       {showColorPicker && selectedColor && (
