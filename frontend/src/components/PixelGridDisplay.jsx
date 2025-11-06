@@ -1,18 +1,20 @@
 import { useState, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import usePaletteStore from '../stores/paletteStore';
-import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
+import { calculateColorDistanceBySpace } from '../utils/colorUtils';
 import CanvasPixelGrid from './CanvasPixelGrid';
 
 export default function PixelGridDisplay() {
-  const { parsedPixels, gridInfo, colorMapping, updateColorMapping, backgroundMask, removeBackground, toggleBackgroundRemoval } = useProjectStore(state => ({
+  const { parsedPixels, gridInfo, colorMapping, updateColorMapping, backgroundMask, removeBackground, toggleBackgroundRemoval, colorMatchMode, updateSettings } = useProjectStore(state => ({
     parsedPixels: state.parsedPixels,
     gridInfo: state.gridInfo,
     colorMapping: state.colorMapping,
     updateColorMapping: state.updateColorMapping,
     backgroundMask: state.backgroundMask,
     removeBackground: state.removeBackground,
-    toggleBackgroundRemoval: state.toggleBackgroundRemoval
+    toggleBackgroundRemoval: state.toggleBackgroundRemoval,
+    colorMatchMode: state.settings.colorMatchMode,
+    updateSettings: state.updateSettings
   }));
 
   const { getAllPalettes, selectedPalettes, isPaletteSelected, togglePalette } = usePaletteStore(state => ({
@@ -150,13 +152,11 @@ export default function PixelGridDisplay() {
       console.log(`Resetting ${uniqueColors.length} colors to auto-matched values...`);
 
       uniqueColors.forEach(imageColorHex => {
-        const imageRgb = hexToRgb(imageColorHex);
         let closestBead = null;
         let minDistance = Infinity;
 
         for (const bead of beadColors) {
-          const beadRgb = hexToRgb(bead.hex);
-          const distance = calculateRgbDistance(imageRgb, beadRgb);
+          const distance = calculateColorDistanceBySpace(imageColorHex, bead.hex, colorMatchMode);
 
           if (distance < minDistance) {
             minDistance = distance;
@@ -192,13 +192,11 @@ export default function PixelGridDisplay() {
 
     try {
       // Re-match just this specific color
-      const imageRgb = hexToRgb(imageColorHex);
       let closestBead = null;
       let minDistance = Infinity;
 
       for (const bead of beadColors) {
-        const beadRgb = hexToRgb(bead.hex);
-        const distance = calculateRgbDistance(imageRgb, beadRgb);
+        const distance = calculateColorDistanceBySpace(imageColorHex, bead.hex, colorMatchMode);
 
         if (distance < minDistance) {
           minDistance = distance;
@@ -262,6 +260,21 @@ export default function PixelGridDisplay() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Pixel Art Grid</h2>
               <div className="flex gap-2">
+                {/* Color Space Toggle */}
+                <button
+                  onClick={() => {
+                    const newMode = colorMatchMode === 'lab' ? 'rgb' : 'lab';
+                    updateSettings({ colorMatchMode: newMode });
+                  }}
+                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                    colorMatchMode === 'lab'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      : 'bg-orange-600 hover:bg-orange-700 text-white'
+                  }`}
+                  title={`Color matching: ${colorMatchMode.toUpperCase()} (click to switch)`}
+                >
+                  {colorMatchMode === 'lab' ? 'LAB' : 'RGB'} Colors
+                </button>
                 {hasMappedColors && (
                   <button
                     onClick={() => setShowMappedColors(!showMappedColors)}

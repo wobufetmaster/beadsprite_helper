@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import useInventoryStore from '../stores/inventoryStore';
 import usePaletteStore from '../stores/paletteStore';
-import { hexToRgb, calculateRgbDistance } from '../utils/colorUtils';
+import { calculateColorDistanceBySpace } from '../utils/colorUtils';
 
 export default function ColorPalette() {
-  const { parsedPixels, updateColorMapping } = useProjectStore(state => ({
+  const { parsedPixels, updateColorMapping, colorMatchMode } = useProjectStore(state => ({
     parsedPixels: state.parsedPixels,
-    updateColorMapping: state.updateColorMapping
+    updateColorMapping: state.updateColorMapping,
+    colorMatchMode: state.settings.colorMatchMode
   }));
 
   const { ownedColors } = useInventoryStore(state => ({
@@ -83,14 +84,12 @@ export default function ColorPalette() {
       const matches = {};
 
       colors.forEach(imageColorHex => {
-        // Find closest bead for this image color using RGB distance
-        const imageRgb = hexToRgb(imageColorHex);
+        // Find closest bead for this image color using selected color space
         let closestBead = null;
         let minDistance = Infinity;
 
         for (const bead of availableBeads) {
-          const beadRgb = hexToRgb(bead.hex);
-          const distance = calculateRgbDistance(imageRgb, beadRgb);
+          const distance = calculateColorDistanceBySpace(imageColorHex, bead.hex, colorMatchMode);
 
           if (distance < minDistance) {
             minDistance = distance;

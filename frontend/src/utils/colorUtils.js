@@ -80,3 +80,23 @@ export function hexToRgb(hex) {
     b: Math.round(rgbColor.b * 255)
   };
 }
+
+/**
+ * Calculate color distance using the specified color space
+ * @param {string} imageColorHex - Image color in hex format
+ * @param {string} beadColorHex - Bead color in hex format
+ * @param {string} colorSpace - 'rgb' or 'lab'
+ * @returns {number} Distance value
+ */
+export function calculateColorDistanceBySpace(imageColorHex, beadColorHex, colorSpace = 'lab') {
+  if (colorSpace === 'rgb') {
+    const imageRgb = hexToRgb(imageColorHex);
+    const beadRgb = hexToRgb(beadColorHex);
+    return calculateRgbDistance(imageRgb, beadRgb);
+  } else {
+    // LAB color space with Delta E (CIE2000)
+    const imageLab = hexToLab(imageColorHex);
+    const beadLab = hexToLab(beadColorHex);
+    return calculateColorDistance(imageLab, beadLab);
+  }
+}
