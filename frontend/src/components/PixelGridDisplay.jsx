@@ -261,20 +261,31 @@ export default function PixelGridDisplay() {
               <h2 className="text-lg font-semibold text-white">Pixel Art Grid</h2>
               <div className="flex gap-2">
                 {/* Color Space Toggle */}
-                <button
-                  onClick={() => {
-                    const newMode = colorMatchMode === 'lab' ? 'rgb' : 'lab';
-                    updateSettings({ colorMatchMode: newMode });
-                  }}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    colorMatchMode === 'lab'
-                      ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                      : 'bg-orange-600 hover:bg-orange-700 text-white'
-                  }`}
-                  title={`Color matching: ${colorMatchMode.toUpperCase()} (click to switch)`}
-                >
-                  {colorMatchMode === 'lab' ? 'LAB' : 'RGB'} Colors
-                </button>
+                <div className="flex items-center gap-2 px-2 py-1 bg-gray-700 rounded">
+                  <span className="text-xs text-gray-400">Color Matching:</span>
+                  <div className="flex bg-gray-800 rounded">
+                    <button
+                      onClick={() => updateSettings({ colorMatchMode: 'rgb' })}
+                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                        colorMatchMode === 'rgb'
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-transparent text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      RGB
+                    </button>
+                    <button
+                      onClick={() => updateSettings({ colorMatchMode: 'lab' })}
+                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                        colorMatchMode === 'lab'
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-transparent text-gray-400 hover:text-gray-200'
+                      }`}
+                    >
+                      LAB
+                    </button>
+                  </div>
+                </div>
                 {hasMappedColors && (
                   <button
                     onClick={() => setShowMappedColors(!showMappedColors)}

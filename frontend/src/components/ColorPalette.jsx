@@ -69,6 +69,14 @@ export default function ColorPalette() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPalettes]);
 
+  // Re-match when color match mode changes
+  useEffect(() => {
+    if (uniqueColors.length > 0 && beadColors.length > 0) {
+      matchColors(uniqueColors);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [colorMatchMode]);
+
   // Match colors locally (browser-only)
   const matchColors = (colors) => {
     if (colors.length === 0 || beadColors.length === 0) return;

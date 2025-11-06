@@ -3,6 +3,9 @@ import { rgb, converter, differenceCiede2000 } from 'culori';
 // Create a converter from RGB to LAB
 const rgbToLabConverter = converter('lab');
 
+// Create the Delta E 2000 difference function (culori returns a generator)
+const deltaE2000 = differenceCiede2000();
+
 /**
  * Convert RGB values (0-255) to LAB color space
  * @param {number} r - Red (0-255)
@@ -22,7 +25,21 @@ export function rgbToLab(r, g, b) {
  * @returns {object} LAB color object
  */
 export function hexToLab(hexColor) {
-  return rgbToLabConverter(hexColor);
+  try {
+    if (!hexColor || typeof hexColor !== 'string') {
+      console.error('Invalid hex color input:', hexColor);
+      return null;
+    }
+    const labColor = rgbToLabConverter(hexColor);
+    if (!labColor || labColor.mode !== 'lab') {
+      console.error('Failed to convert hex to LAB:', hexColor, labColor);
+      return null;
+    }
+    return labColor;
+  } catch (err) {
+    console.error('Error converting hex to LAB:', err, hexColor);
+    return null;
+  }
 }
 
 /**
@@ -39,7 +56,8 @@ export function calculateColorDistance(color1, color2) {
       return Infinity;
     }
 
-    const distance = differenceCiede2000(color1, color2);
+    // Use the pre-generated Delta E 2000 function
+    const distance = deltaE2000(color1, color2);
 
     // Check if result is valid
     if (distance === null || distance === undefined || isNaN(distance)) {
@@ -89,14 +107,27 @@ export function hexToRgb(hex) {
  * @returns {number} Distance value
  */
 export function calculateColorDistanceBySpace(imageColorHex, beadColorHex, colorSpace = 'lab') {
-  if (colorSpace === 'rgb') {
-    const imageRgb = hexToRgb(imageColorHex);
-    const beadRgb = hexToRgb(beadColorHex);
-    return calculateRgbDistance(imageRgb, beadRgb);
-  } else {
-    // LAB color space with Delta E (CIE2000)
-    const imageLab = hexToLab(imageColorHex);
-    const beadLab = hexToLab(beadColorHex);
-    return calculateColorDistance(imageLab, beadLab);
+  try {
+    if (colorSpace === 'rgb') {
+      const imageRgb = hexToRgb(imageColorHex);
+      const beadRgb = hexToRgb(beadColorHex);
+      if (!imageRgb || !beadRgb) {
+        console.error('Failed to convert colors to RGB:', { imageColorHex, beadColorHex });
+        return Infinity;
+      }
+      return calculateRgbDistance(imageRgb, beadRgb);
+    } else {
+      // LAB color space with Delta E (CIE2000)
+      const imageLab = hexToLab(imageColorHex);
+      const beadLab = hexToLab(beadColorHex);
+      if (!imageLab || !beadLab) {
+        console.error('Failed to convert colors to LAB:', { imageColorHex, beadColorHex, imageLab, beadLab });
+        return Infinity;
+      }
+      return calculateColorDistance(imageLab, beadLab);
+    }
+  } catch (err) {
+    console.error('Error in calculateColorDistanceBySpace:', err, { imageColorHex, beadColorHex, colorSpace });
+    return Infinity;
   }
 }
