@@ -5,3 +5,8 @@ sample_image.png
 backend/
 start-dev.sh
 serve-local.sh
+
+# Documentation and plan files
+docs/plans/
+CLAUDE.md
+instructions.md
