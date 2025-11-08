@@ -90,6 +90,10 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or sponsored by Perler®, Artkal, Hama, or any other bead manufacturers. All product names and trademarks are the property of their respective owners. This is an independent, open-source tool created for educational and personal use.
+
 ## Acknowledgments
 
 - Perler bead color data based on official Perler color charts
