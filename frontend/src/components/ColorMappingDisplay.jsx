@@ -5,11 +5,11 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
 
   return (
     <div className="w-full">
-      <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-        <h2 className="text-lg font-semibold mb-4 text-white">Color Mapping Results</h2>
+      <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 border border-gray-700">
+        <h2 className="text-lg font-semibold mb-3 sm:mb-4 text-white">Color Mapping Results</h2>
 
         {/* Summary */}
-        <div className="mb-6 grid grid-cols-2 gap-4 text-sm">
+        <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 text-sm">
           <div>
             <span className="font-medium text-gray-300">Total beads needed:</span>
             <span className="ml-2 text-gray-400">{totalBeads}</span>
@@ -22,17 +22,17 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
 
         {/* Bead list */}
         <div>
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Bead Shopping List</h3>
+          <h3 className="text-sm font-medium text-gray-300 mb-2 sm:mb-3">Bead Shopping List</h3>
           <div className="max-h-96 overflow-y-auto">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {beadList.map(({ color, count }) => (
                 <div
                   key={color.id}
-                  className="flex items-center gap-3 p-3 bg-gray-700/50 rounded border border-gray-600 hover:bg-gray-700 transition-colors"
+                  className="flex items-center gap-2 sm:gap-3 p-2 sm:p-3 bg-gray-700/50 rounded border border-gray-600 hover:bg-gray-700 transition-colors"
                 >
                   {/* Color swatch */}
                   <div
-                    className="w-12 h-12 rounded border-2 border-gray-500 flex-shrink-0"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded border-2 border-gray-500 flex-shrink-0"
                     style={{ backgroundColor: color.hex }}
                     title={color.hex}
                   />

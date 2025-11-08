@@ -47,10 +47,10 @@ export default function ProjectControls() {
   };
 
   return (
-    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-4">
-      <h2 className="text-lg font-semibold text-white mb-3">Project Management</h2>
+    <div className="bg-gray-800 rounded-lg shadow-lg border border-gray-700 p-3 sm:p-4">
+      <h2 className="text-base sm:text-lg font-semibold text-white mb-2 sm:mb-3">Project Management</h2>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         {/* Save Project Button */}
         <button
           onClick={handleExport}

@@ -101,7 +101,7 @@ export default function ImageUploadZone() {
     <div className="w-full">
       <div
         className={`
-          border-2 border-dashed rounded-lg p-8 text-center cursor-pointer
+          border-2 border-dashed rounded-lg p-4 sm:p-8 text-center cursor-pointer
           transition-colors duration-200
           ${isDragging
             ? 'border-blue-400 bg-blue-900/20'
@@ -123,9 +123,9 @@ export default function ImageUploadZone() {
           className="hidden"
         />
 
-        <div className="space-y-2">
+        <div className="space-y-1.5 sm:space-y-2">
           <svg
-            className="mx-auto h-12 w-12 text-gray-500"
+            className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-500"
             stroke="currentColor"
             fill="none"
             viewBox="0 0 48 48"

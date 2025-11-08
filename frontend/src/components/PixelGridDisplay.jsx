@@ -253,20 +253,20 @@ export default function PixelGridDisplay() {
 
   return (
     <div className="w-full">
-      <div className="bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700">
-        <div className="flex gap-6">
+      <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-6 border border-gray-700">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Main grid section */}
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 sm:mb-4 gap-3">
               <h2 className="text-lg font-semibold text-white">Pixel Art Grid</h2>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full sm:w-auto">
                 {/* Color Space Toggle */}
-                <div className="flex items-center gap-2 px-2 py-1 bg-gray-700 rounded">
-                  <span className="text-xs text-gray-400">Color Matching:</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 px-2 py-1 bg-gray-700 rounded text-xs sm:text-sm">
+                  <span className="hidden sm:inline text-xs text-gray-400">Color Matching:</span>
                   <div className="flex bg-gray-800 rounded">
                     <button
                       onClick={() => updateSettings({ colorMatchMode: 'rgb' })}
-                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                      className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-colors ${
                         colorMatchMode === 'rgb'
                           ? 'bg-orange-600 text-white'
                           : 'bg-transparent text-gray-400 hover:text-gray-200'
@@ -276,7 +276,7 @@ export default function PixelGridDisplay() {
                     </button>
                     <button
                       onClick={() => updateSettings({ colorMatchMode: 'lab' })}
-                      className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
+                      className={`px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium rounded transition-colors ${
                         colorMatchMode === 'lab'
                           ? 'bg-indigo-600 text-white'
                           : 'bg-transparent text-gray-400 hover:text-gray-200'
@@ -289,7 +289,7 @@ export default function PixelGridDisplay() {
                 {hasMappedColors && (
                   <button
                     onClick={() => setShowMappedColors(!showMappedColors)}
-                    className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                    className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors whitespace-nowrap"
                   >
                     {showMappedColors ? 'Show Original' : 'Show Mapped'}
                   </button>
@@ -297,19 +297,20 @@ export default function PixelGridDisplay() {
                 {backgroundMask && (
                   <button
                     onClick={toggleBackgroundRemoval}
-                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                    className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap ${
                       removeBackground
                         ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'bg-gray-700 hover:bg-gray-600 text-white'
                     }`}
                     title="Toggle background removal"
                   >
-                    {removeBackground ? 'Background: Hidden' : 'Background: Shown'}
+                    <span className="hidden sm:inline">{removeBackground ? 'Background: Hidden' : 'Background: Shown'}</span>
+                    <span className="sm:hidden">{removeBackground ? 'BG: Hidden' : 'BG: Shown'}</span>
                   </button>
                 )}
                 <button
                   onClick={() => setBeadShape(beadShape === 'square' ? 'circle' : 'square')}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap ${
                     beadShape === 'circle'
                       ? 'bg-purple-600 hover:bg-purple-700 text-white'
                       : 'bg-gray-700 hover:bg-gray-600 text-white'
@@ -320,14 +321,15 @@ export default function PixelGridDisplay() {
                 </button>
                 <button
                   onClick={() => setShowPegboardGrid(!showPegboardGrid)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
+                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap ${
                     showPegboardGrid
                       ? 'bg-blue-600 hover:bg-blue-700 text-white'
                       : 'bg-gray-700 hover:bg-gray-600 text-white'
                   }`}
                   title="Toggle pegboard grid overlay"
                 >
-                  Pegboard Grid
+                  <span className="hidden sm:inline">Pegboard Grid</span>
+                  <span className="sm:hidden">Pegboard</span>
                 </button>
               </div>
             </div>
@@ -350,52 +352,70 @@ export default function PixelGridDisplay() {
 
         {/* Pegboard grid controls */}
         {showPegboardGrid && (
-          <div className="mb-4 p-4 bg-blue-900/20 rounded border border-blue-500/30">
-            <div className="mb-3">
+          <div className="mb-3 sm:mb-4 p-3 sm:p-4 bg-blue-900/20 rounded border border-blue-500/30">
+            <div className="mb-2 sm:mb-3">
               <label className="block text-sm font-medium text-blue-300 mb-2">
                 Pegboard Size:
               </label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPegboardSize(29)}
-                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                    pegboardSize === 29
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  29×29
-                </button>
-                <button
-                  onClick={() => setPegboardSize(50)}
-                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                    pegboardSize === 50
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  50×50
-                </button>
-                <button
-                  onClick={() => setPegboardSize(57)}
-                  className={`px-3 py-1.5 text-sm rounded transition-colors ${
-                    pegboardSize === 57
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  }`}
-                >
-                  57×57
-                </button>
-                <div className="flex items-center gap-2 ml-2">
-                  <span className="text-sm text-gray-400">Custom:</span>
-                  <input
-                    type="number"
-                    min="10"
-                    max="100"
-                    value={pegboardSize}
-                    onChange={(e) => setPegboardSize(parseInt(e.target.value) || 29)}
-                    className="w-20 px-2 py-1 bg-gray-700 border border-gray-600 rounded text-white text-sm focus:outline-none focus:border-blue-500"
-                  />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setPegboardSize(29)}
+                    className={`flex-1 sm:flex-none px-3 py-1.5 text-sm rounded transition-colors ${
+                      pegboardSize === 29
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    29×29
+                  </button>
+                  <button
+                    onClick={() => setPegboardSize(50)}
+                    className={`flex-1 sm:flex-none px-3 py-1.5 text-sm rounded transition-colors ${
+                      pegboardSize === 50
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    50×50
+                  </button>
+                  <button
+                    onClick={() => setPegboardSize(57)}
+                    className={`flex-1 sm:flex-none px-3 py-1.5 text-sm rounded transition-colors ${
+                      pegboardSize === 57
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                    }`}
+                  >
+                    57×57
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400 whitespace-nowrap">Custom:</span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setPegboardSize(Math.max(10, pegboardSize - 1))}
+                      className="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors text-lg"
+                      aria-label="Decrease size"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min="10"
+                      max="100"
+                      value={pegboardSize}
+                      onChange={(e) => setPegboardSize(parseInt(e.target.value) || 29)}
+                      className="w-16 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm text-center focus:outline-none focus:border-blue-500"
+                    />
+                    <button
+                      onClick={() => setPegboardSize(Math.min(100, pegboardSize + 1))}
+                      className="w-8 h-8 flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors text-lg"
+                      aria-label="Increase size"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -540,11 +560,11 @@ export default function PixelGridDisplay() {
 
           {/* Color picker side panel */}
           {selectedCell && (
-            <div className="w-80 flex-shrink-0">
-              <div className="sticky top-0">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-white">Change Bead Color</h3>
-                  <div className="flex gap-2">
+            <div className="w-full lg:w-80 flex-shrink-0">
+              <div className="lg:sticky lg:top-0">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 gap-2">
+                  <h3 className="text-base sm:text-lg font-semibold text-white">Change Bead Color</h3>
+                  <div className="flex gap-1.5 sm:gap-2 flex-wrap">
                     <button
                       onClick={handleUndo}
                       disabled={mappingHistory.length === 0}
@@ -562,7 +582,7 @@ export default function PixelGridDisplay() {
                     </button>
                     <button
                       onClick={handleResetAll}
-                      className="px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                      className="px-2 py-1 text-xs bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors whitespace-nowrap"
                       title="Reset ALL colors to auto-matched values"
                     >
                       Reset All
@@ -628,7 +648,7 @@ export default function PixelGridDisplay() {
 
                 {/* Color grid */}
                 <div className="max-h-96 overflow-y-auto">
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {filteredBeadColors.map(color => {
                       const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
                       const isCurrentMapping = colorMapping[originalHex] === color.id;

@@ -87,14 +87,14 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900">
       <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-        <div className="max-w-7xl mx-auto py-6 px-4">
-          <h1 className="text-3xl font-bold text-white">Beadsprite Helper</h1>
+        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Beadsprite Helper</h1>
         </div>
       </header>
-      <main className="max-w-7xl mx-auto py-6 px-4 space-y-6">
+      <main className="max-w-7xl mx-auto py-3 sm:py-6 px-3 sm:px-4 space-y-4 sm:space-y-6">
         {/* Image Upload Section */}
-        <div className="bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-700">
-          <h2 className="text-xl font-semibold mb-4 text-white">Upload Pixel Art</h2>
+        <div className="bg-gray-800 shadow-lg rounded-lg p-4 sm:p-6 border border-gray-700">
+          <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4 text-white">Upload Pixel Art</h2>
           <ImageUploadZone />
         </div>
 

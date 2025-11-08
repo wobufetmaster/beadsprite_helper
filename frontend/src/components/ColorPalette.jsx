@@ -203,7 +203,7 @@ export default function ColorPalette() {
     <div className="w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full p-6 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+        className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
       >
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-white">Color Palette</h2>
@@ -222,9 +222,9 @@ export default function ColorPalette() {
       </button>
 
       {isExpanded && (
-        <div className="px-6 pb-6">
+        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
           {/* Color matches */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
         {uniqueColors.map(imageColor => {
           const match = colorMatches[imageColor];
           const count = getColorCount(imageColor);
@@ -233,7 +233,7 @@ export default function ColorPalette() {
           return (
             <div
               key={imageColor}
-              className="flex flex-col gap-2 p-3 bg-gray-700/50 rounded hover:bg-gray-700 transition-colors cursor-pointer"
+              className="flex flex-col gap-2 p-2 sm:p-3 bg-gray-700/50 rounded hover:bg-gray-700 transition-colors cursor-pointer"
               onClick={() => handleColorClick(imageColor)}
             >
               {/* Color swatches */}
@@ -369,7 +369,7 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
 
         {/* Color grid */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
             {filteredColors.map(color => (
               <button
                 key={color.id}
