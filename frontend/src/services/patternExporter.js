@@ -4,7 +4,6 @@
  */
 
 import { jsPDF } from 'jspdf';
-import { PERLER_COLORS } from '../data/perlerColors';
 
 /**
  * Export pattern canvas as PNG file
@@ -163,9 +162,10 @@ export async function exportPDF(canvas, legendData, colorLabels, filename) {
       pdf.setLineWidth(0.2);
       pdf.rect(margin + 20, yPos - swatchSize + 1, swatchSize, swatchSize, 'S');
 
-      // Draw text
+      // Draw text - include bead code if available
       pdf.setTextColor(0, 0, 0);
-      pdf.text(item.beadName, margin + 30, yPos);
+      const displayName = item.beadCode ? `${item.beadCode} - ${item.beadName}` : item.beadName;
+      pdf.text(displayName, margin + 30, yPos);
       pdf.text(item.count.toString(), pageWidth - margin - 25, yPos, { align: 'right' });
 
       yPos += rowHeight;
@@ -191,11 +191,12 @@ export async function exportPDF(canvas, legendData, colorLabels, filename) {
 /**
  * Generate legend data from bead grid
  * @param {Array} beadGrid - 2D array of bead IDs
+ * @param {Array} beadColors - Array of bead color objects from selected palettes
  * @param {Array} backgroundMask - 2D array of booleans indicating background pixels
  * @param {boolean} removeBackground - Whether to exclude background from counts
  * @returns {Array} Legend data sorted by count descending
  */
-export function generateLegendData(beadGrid, backgroundMask, removeBackground) {
+export function generateLegendData(beadGrid, beadColors, backgroundMask, removeBackground) {
   if (!beadGrid || beadGrid.length === 0) {
     return [];
   }
@@ -217,11 +218,17 @@ export function generateLegendData(beadGrid, backgroundMask, removeBackground) {
     }
   }
 
-  // Create bead color lookup
+  // Create bead color lookup from provided bead colors
   const beadColorMap = {};
-  PERLER_COLORS.forEach(color => {
-    beadColorMap[color.id] = { name: color.name, hex: color.hex };
-  });
+  if (beadColors && beadColors.length > 0) {
+    beadColors.forEach(color => {
+      beadColorMap[color.id] = {
+        name: color.name,
+        hex: color.hex,
+        code: color.code
+      };
+    });
+  }
 
   // Convert to array and sort by count
   const legendData = Object.entries(beadCounts)
@@ -230,6 +237,7 @@ export function generateLegendData(beadGrid, backgroundMask, removeBackground) {
       return {
         beadId,
         beadName: bead?.name || beadId,
+        beadCode: bead?.code,
         hex: bead?.hex || '#000000',
         count,
       };

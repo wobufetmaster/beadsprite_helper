@@ -1,6 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import { useUIStore } from '../stores/uiStore';
+import usePaletteStore from '../stores/paletteStore';
 import PatternRenderer from './PatternRenderer';
 import LabeledPatternRenderer from './LabeledPatternRenderer';
 import { exportPNG, exportPDF, generateLegendData } from '../services/patternExporter';
@@ -9,6 +10,20 @@ import { generateColorLabels } from '../utils/labelGenerator';
 export default function PatternExportControls() {
   const { beadGrid, backgroundMask, removeBackground, parsedPixels, colorMapping } = useProjectStore();
   const { isLoading } = useUIStore();
+  const { getAllPalettes, selectedPalettes } = usePaletteStore();
+
+  // Get bead colors from selected palettes
+  const beadColors = useMemo(() => {
+    const allPalettes = getAllPalettes();
+    const colors = [];
+    selectedPalettes.forEach(paletteId => {
+      const palette = allPalettes.find(p => p.id === paletteId);
+      if (palette) {
+        colors.push(...palette.colors);
+      }
+    });
+    return colors;
+  }, [selectedPalettes, getAllPalettes]);
 
   const [exportFormat, setExportFormat] = useState('png');
   const [beadShape, setBeadShape] = useState('square');
@@ -77,7 +92,7 @@ export default function PatternExportControls() {
         console.log('Pattern exported as PNG');
       } else if (exportFormat === 'pdf') {
         // Generate legend data and labels using current beadGrid
-        const legendData = generateLegendData(rebuiltGrid, backgroundMask, removeBackground);
+        const legendData = generateLegendData(rebuiltGrid, beadColors, backgroundMask, removeBackground);
         const labels = generateColorLabels(legendData);
         setColorLabels(labels);
 
@@ -250,6 +265,7 @@ export default function PatternExportControls() {
       {(currentBeadGrid || beadGrid) && (
         <PatternRenderer
           beadGrid={currentBeadGrid || beadGrid}
+          beadColors={beadColors}
           backgroundMask={backgroundMask}
           removeBackground={removeBackground}
           beadShape={beadShape}
@@ -263,6 +279,7 @@ export default function PatternExportControls() {
       {(currentBeadGrid || beadGrid) && colorLabels && (
         <LabeledPatternRenderer
           beadGrid={currentBeadGrid || beadGrid}
+          beadColors={beadColors}
           colorLabels={colorLabels}
           backgroundMask={backgroundMask}
           removeBackground={removeBackground}

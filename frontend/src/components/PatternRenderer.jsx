@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react';
-import { PERLER_COLORS } from '../data/perlerColors';
 
 /**
  * PatternRenderer - Hidden canvas component for high-quality pattern export
@@ -7,6 +6,7 @@ import { PERLER_COLORS } from '../data/perlerColors';
  */
 export default function PatternRenderer({
   beadGrid,
+  beadColors,
   backgroundMask,
   removeBackground,
   beadShape = 'square',
@@ -149,11 +149,13 @@ export default function PatternRenderer({
       }
     }
 
-    // Create bead color lookup map
+    // Create bead color lookup map from provided bead colors
     const beadColorMap = {};
-    PERLER_COLORS.forEach(color => {
-      beadColorMap[color.id] = color.hex;
-    });
+    if (beadColors && beadColors.length > 0) {
+      beadColors.forEach(color => {
+        beadColorMap[color.id] = color.hex;
+      });
+    }
 
     // Render each bead
     for (let gridY = offsetY + padding; gridY < offsetY + height - padding; gridY++) {
@@ -226,7 +228,7 @@ export default function PatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
+  }, [beadGrid, beadColors, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
 
   return (
     <canvas

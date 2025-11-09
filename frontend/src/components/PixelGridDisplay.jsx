@@ -224,6 +224,19 @@ export default function PixelGridDisplay() {
     }).join('');
   };
 
+  // Format bead color code (just return as-is)
+  const formatBeadCode = (code) => {
+    if (!code) return '';
+    return code;
+  };
+
+  // Format bead display name with code
+  const formatBeadName = (color) => {
+    if (!color) return '';
+    const formattedCode = formatBeadCode(color.code);
+    return formattedCode ? `${formattedCode} - ${color.name}` : color.name;
+  };
+
   // Get the display color for a pixel (either original or mapped)
   const getDisplayColor = (pixel) => {
     const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
@@ -246,9 +259,10 @@ export default function PixelGridDisplay() {
 
   const hasMappedColors = Object.keys(colorMapping).length > 0;
 
-  // Get filtered bead colors for color picker
+  // Get filtered bead colors for color picker - search by name or code
   const filteredBeadColors = beadColors.filter(color =>
-    color.name.toLowerCase().includes(filterText.toLowerCase())
+    color.name.toLowerCase().includes(filterText.toLowerCase()) ||
+    (color.code && color.code.toLowerCase().includes(filterText.toLowerCase()))
   );
 
   return (
@@ -640,7 +654,7 @@ export default function PixelGridDisplay() {
                 {/* Search filter */}
                 <input
                   type="text"
-                  placeholder="Filter colors..."
+                  placeholder="Filter colors by name or code..."
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
                   className="w-full mb-3 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
@@ -669,7 +683,7 @@ export default function PixelGridDisplay() {
                             style={{ backgroundColor: color.hex }}
                           />
                           <div className="text-xs text-center text-white truncate w-full">
-                            {color.name}
+                            {formatBeadName(color)}
                           </div>
                         </button>
                       );

@@ -110,6 +110,7 @@ export default function ColorPalette() {
             beadColorId: closestBead.id,
             beadColorHex: closestBead.hex,
             beadColorName: closestBead.name,
+            beadColorCode: closestBead.code,
             distance: minDistance
           };
 
@@ -132,7 +133,7 @@ export default function ColorPalette() {
     setShowColorPicker(true);
   };
 
-  const handleBeadColorSelect = (beadColorId, beadColorHex, beadColorName) => {
+  const handleBeadColorSelect = (beadColorId, beadColorHex, beadColorName, beadColorCode) => {
     if (!selectedColor) return;
 
     // Update the color match
@@ -142,6 +143,7 @@ export default function ColorPalette() {
         beadColorId,
         beadColorHex,
         beadColorName,
+        beadColorCode,
         distance: 0 // Manual selection
       }
     }));
@@ -262,10 +264,13 @@ export default function ColorPalette() {
 
               {/* Color info */}
               <div className="min-w-0">
-                <div className="text-sm font-medium text-white truncate">
-                  {match ? match.beadColorName : 'No match'}
+                <div className="text-xs text-gray-400 mb-1">
+                  {imageColor} → {match ? match.beadColorHex : 'No match'}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-sm font-medium text-white truncate">
+                  {match ? (match.beadColorCode ? `${formatBeadCode(match.beadColorCode)} - ${match.beadColorName}` : match.beadColorName) : 'No match'}
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
                   {count} beads ({percentage}%)
                   {match && match.distance > 0 && (
                     <span className="ml-2 text-gray-500">
@@ -320,9 +325,10 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
     return colors;
   }, [selectedPalettes, getAllPalettes]);
 
-  // Filter bead colors by name
+  // Filter bead colors by name or code
   const filteredColors = beadColors.filter(color =>
-    color.name.toLowerCase().includes(filter.toLowerCase())
+    color.name.toLowerCase().includes(filter.toLowerCase()) ||
+    (color.code && color.code.toLowerCase().includes(filter.toLowerCase()))
   );
 
   return (
@@ -360,7 +366,7 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
           {/* Search filter */}
           <input
             type="text"
-            placeholder="Filter colors by name..."
+            placeholder="Filter colors by name or code..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             className="mt-3 w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
@@ -373,7 +379,7 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
             {filteredColors.map(color => (
               <button
                 key={color.id}
-                onClick={() => onSelect(color.id, color.hex, color.name)}
+                onClick={() => onSelect(color.id, color.hex, color.name, color.code)}
                 className={`flex flex-col items-center gap-2 p-3 rounded transition-colors ${
                   currentMatch?.beadColorId === color.id
                     ? 'bg-blue-600 hover:bg-blue-700'
@@ -385,7 +391,7 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
                   style={{ backgroundColor: color.hex }}
                 />
                 <div className="text-xs text-center text-white truncate w-full">
-                  {color.name}
+                  {formatBeadName(color)}
                 </div>
                 {color.quantity !== undefined && (
                   <div className="text-xs text-gray-400">
@@ -407,10 +413,23 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
   );
 }
 
-// Helper function
+// Helper functions
 function rgbToHex(r, g, b) {
   return '#' + [r, g, b].map(x => {
     const hex = x.toString(16);
     return hex.length === 1 ? '0' + hex : hex;
   }).join('');
+}
+
+// Format bead color code (just return as-is)
+function formatBeadCode(code) {
+  if (!code) return '';
+  return code;
+}
+
+// Format bead display name with code
+function formatBeadName(color) {
+  if (!color) return '';
+  const formattedCode = formatBeadCode(color.code);
+  return formattedCode ? `${formattedCode} - ${color.name}` : color.name;
 }

@@ -1,3 +1,16 @@
+// Format bead color code (just return as-is)
+function formatBeadCode(code) {
+  if (!code) return '';
+  return code;
+}
+
+// Format bead display name with code
+function formatBeadName(color) {
+  if (!color) return '';
+  const formattedCode = formatBeadCode(color.code);
+  return formattedCode ? `${formattedCode} - ${color.name}` : color.name;
+}
+
 export default function ColorMappingDisplay({ beadList, totalBeads }) {
   if (!beadList || beadList.length === 0) {
     return null;
@@ -40,7 +53,7 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
                   {/* Color info and count */}
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-100 truncate">
-                      {color.name}
+                      {formatBeadName(color)}
                     </div>
                     <div className="text-xs text-gray-400">
                       {color.hex}
@@ -64,7 +77,9 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
           <div className="space-y-2">
             {beadList.slice(0, 10).map(({ color, count }) => (
               <div key={color.id} className="flex items-center gap-2">
-                <div className="w-24 text-xs text-gray-400 truncate">{color.name}</div>
+                <div className="w-24 text-xs text-gray-400 truncate">
+                  {formatBeadName(color)}
+                </div>
                 <div className="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-300"

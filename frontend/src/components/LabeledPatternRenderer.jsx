@@ -1,5 +1,4 @@
 import { useRef, useEffect } from 'react';
-import { PERLER_COLORS } from '../data/perlerColors';
 import { getContrastTextColor } from '../utils/labelGenerator';
 
 /**
@@ -8,6 +7,7 @@ import { getContrastTextColor } from '../utils/labelGenerator';
  */
 export default function LabeledPatternRenderer({
   beadGrid,
+  beadColors,
   colorLabels,
   backgroundMask,
   removeBackground,
@@ -72,11 +72,13 @@ export default function LabeledPatternRenderer({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Build bead color lookup
+    // Build bead color lookup from provided bead colors
     const beadColorMap = {};
-    PERLER_COLORS.forEach(color => {
-      beadColorMap[color.id] = color.hex;
-    });
+    if (beadColors && beadColors.length > 0) {
+      beadColors.forEach(color => {
+        beadColorMap[color.id] = color.hex;
+      });
+    }
 
     // Draw each pixel
     for (let y = minY; y <= maxY; y++) {
@@ -162,7 +164,7 @@ export default function LabeledPatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
+  }, [beadGrid, beadColors, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
 
   return (
     <canvas
