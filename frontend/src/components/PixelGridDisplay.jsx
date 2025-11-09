@@ -242,7 +242,7 @@ export default function PixelGridDisplay() {
     const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
 
     if (!showMappedColors || Object.keys(colorMapping).length === 0) {
-      return { hex: pixelHex, beadName: null };
+      return { hex: pixelHex, beadName: null, beadCode: null };
     }
 
     // Look up mapped bead color
@@ -250,11 +250,11 @@ export default function PixelGridDisplay() {
     if (beadColorId && beadColors.length > 0) {
       const beadColor = beadColors.find(c => c.id === beadColorId);
       if (beadColor) {
-        return { hex: beadColor.hex, beadName: beadColor.name };
+        return { hex: beadColor.hex, beadName: beadColor.name, beadCode: beadColor.code };
       }
     }
 
-    return { hex: pixelHex, beadName: null };
+    return { hex: pixelHex, beadName: null, beadCode: null };
   };
 
   const hasMappedColors = Object.keys(colorMapping).length > 0;
@@ -630,7 +630,7 @@ export default function PixelGridDisplay() {
                 {/* Selected pixel info */}
                 {(() => {
                   const selectedHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
-                  const { beadName } = getDisplayColor(selectedCell.color);
+                  const { beadName, beadCode } = getDisplayColor(selectedCell.color);
 
                   return (
                     <div className="mb-4 p-3 bg-gray-700/50 rounded border border-gray-600">
@@ -643,7 +643,9 @@ export default function PixelGridDisplay() {
                         <div className="text-sm">
                           <div className="text-white font-medium">{selectedHex}</div>
                           {beadName && (
-                            <div className="text-blue-400 mt-1">Currently: {beadName}</div>
+                            <div className="text-blue-400 mt-1">
+                              Currently: {beadCode ? `${beadCode} - ${beadName}` : beadName}
+                            </div>
                           )}
                         </div>
                       </div>
