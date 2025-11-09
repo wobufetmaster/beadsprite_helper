@@ -20,11 +20,23 @@ function App() {
     removeBackground: state.removeBackground
   }));
 
-  const { getAvailableColors } = usePaletteStore(state => ({
-    getAvailableColors: state.getAvailableColors
+  const { selectedPalettes, getAllPalettes } = usePaletteStore(state => ({
+    selectedPalettes: state.selectedPalettes,
+    getAllPalettes: state.getAllPalettes
   }));
 
-  const availableColors = useMemo(() => getAvailableColors(), [getAvailableColors]);
+  // Get available colors from selected palettes
+  const availableColors = useMemo(() => {
+    const allPalettes = getAllPalettes();
+    const colors = [];
+    selectedPalettes.forEach(paletteId => {
+      const palette = allPalettes.find(p => p.id === paletteId);
+      if (palette) {
+        colors.push(...palette.colors);
+      }
+    });
+    return colors;
+  }, [selectedPalettes, getAllPalettes]);
 
   // Helper function to convert RGB to hex
   const rgbToHex = (r, g, b) => {
