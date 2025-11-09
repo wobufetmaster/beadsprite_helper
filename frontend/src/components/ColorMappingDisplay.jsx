@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 // Format bead color code (just return as-is)
 function formatBeadCode(code) {
   if (!code) return '';
@@ -12,31 +14,37 @@ function formatBeadName(color) {
 }
 
 export default function ColorMappingDisplay({ beadList, totalBeads }) {
+  const [isExpanded, setIsExpanded] = useState(true);
   if (!beadList || beadList.length === 0) {
     return null;
   }
 
   return (
-    <div className="w-full">
-      <div className="bg-gray-800 rounded-lg shadow-lg p-4 sm:p-6 border border-gray-700">
-        <h2 className="text-lg font-semibold mb-3 sm:mb-4 text-white">Color Mapping Results</h2>
-
-        {/* Summary */}
-        <div className="mb-4 sm:mb-6 grid grid-cols-2 gap-3 sm:gap-4 text-sm">
-          <div>
-            <span className="font-medium text-gray-300">Total beads needed:</span>
-            <span className="ml-2 text-gray-400">{totalBeads}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-300">Unique colors:</span>
-            <span className="ml-2 text-gray-400">{beadList.length}</span>
+    <div className="w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full p-4 sm:p-6 flex items-center justify-between hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-3">
+          <h2 className="text-lg font-semibold text-white">Color Mapping Results</h2>
+          <div className="text-sm text-gray-400">
+            {totalBeads} beads, {beadList.length} colors
           </div>
         </div>
+        <svg
+          className={`w-5 h-5 text-gray-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
 
-        {/* Bead list */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-300 mb-2 sm:mb-3">Bead Shopping List</h3>
-          <div className="max-h-96 overflow-y-auto">
+      {isExpanded && (
+        <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+          {/* Bead list */}
+          <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
               {beadList.map(({ color, count }) => (
                 <div
@@ -69,32 +77,32 @@ export default function ColorMappingDisplay({ beadList, totalBeads }) {
               ))}
             </div>
           </div>
-        </div>
 
-        {/* Color distribution chart (simple bar chart) */}
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-gray-300 mb-3">Color Distribution</h3>
-          <div className="space-y-2">
-            {beadList.slice(0, 10).map(({ color, count }) => (
-              <div key={color.id} className="flex items-center gap-2">
-                <div className="w-24 text-xs text-gray-400 truncate">
-                  {formatBeadName(color)}
+          {/* Color distribution chart (simple bar chart) */}
+          <div className="mt-6">
+            <h3 className="text-sm font-medium text-gray-300 mb-3">Color Distribution</h3>
+            <div className="space-y-2">
+              {beadList.slice(0, 10).map(({ color, count }) => (
+                <div key={color.id} className="flex items-center gap-2">
+                  <div className="w-24 text-xs text-gray-400 truncate">
+                    {formatBeadName(color)}
+                  </div>
+                  <div className="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${(count / totalBeads) * 100}%`,
+                        backgroundColor: color.hex
+                      }}
+                    />
+                  </div>
+                  <div className="w-12 text-xs text-gray-400 text-right">{count}</div>
                 </div>
-                <div className="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-300"
-                    style={{
-                      width: `${(count / totalBeads) * 100}%`,
-                      backgroundColor: color.hex
-                    }}
-                  />
-                </div>
-                <div className="w-12 text-xs text-gray-400 text-right">{count}</div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

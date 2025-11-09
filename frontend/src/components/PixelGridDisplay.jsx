@@ -4,6 +4,34 @@ import usePaletteStore from '../stores/paletteStore';
 import { calculateColorDistanceBySpace } from '../utils/colorUtils';
 import CanvasPixelGrid from './CanvasPixelGrid';
 
+// Custom styles for scrollbar
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 5px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
+  }
+  .scroll-fade::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 10px;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, #374151);
+    pointer-events: none;
+  }
+`;
+
 export default function PixelGridDisplay() {
   const { parsedPixels, gridInfo, colorMapping, updateColorMapping, backgroundMask, removeBackground, toggleBackgroundRemoval, colorMatchMode, updateSettings } = useProjectStore(state => ({
     parsedPixels: state.parsedPixels,
@@ -267,6 +295,7 @@ export default function PixelGridDisplay() {
 
   return (
     <div className="w-full">
+      <style>{scrollbarStyles}</style>
       <div className="bg-gray-800 rounded-lg shadow-lg p-3 sm:p-6 border border-gray-700">
         <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
           {/* Main grid section */}
@@ -662,8 +691,16 @@ export default function PixelGridDisplay() {
                   className="w-full mb-3 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
                 />
 
+                {/* Scroll hint */}
+                {filteredBeadColors.length > 6 && (
+                  <div className="text-xs text-gray-400 italic mb-2 text-center">
+                    Scroll for more colors ↓
+                  </div>
+                )}
+
                 {/* Color grid */}
-                <div className="max-h-96 overflow-y-auto">
+                <div className="relative scroll-fade">
+                  <div className="max-h-96 overflow-y-auto custom-scrollbar pr-2">
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {filteredBeadColors.map(color => {
                       const originalHex = rgbToHex(selectedCell.color.r, selectedCell.color.g, selectedCell.color.b);
@@ -697,6 +734,7 @@ export default function PixelGridDisplay() {
                       No colors found
                     </div>
                   )}
+                  </div>
                 </div>
               </div>
             </div>
