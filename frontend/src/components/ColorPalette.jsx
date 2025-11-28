@@ -32,14 +32,14 @@ export default function ColorPalette() {
     });
     return colors;
   }, [selectedPalettes, getAllPalettes]);
-  const [uniqueColors, setUniqueColors] = useState([]);
+  const [colorGroups, setColorGroups] = useState([]); // Array of { representative, members: [...] }
   const [colorMatches, setColorMatches] = useState({});
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Extract unique colors from parsed pixels
+  // Extract unique colors from parsed pixels and quantize similar ones
   useEffect(() => {
     if (!parsedPixels) return;
 
@@ -52,33 +52,39 @@ export default function ColorPalette() {
     });
 
     const colors = Array.from(colorSet);
-    setUniqueColors(colors);
+
+    // Quantize similar colors - group colors within threshold distance
+    const groups = quantizeColors(colors, 30); // threshold of 30 RGB distance
+    setColorGroups(groups);
 
     // Auto-match colors if we don't have matches yet
-    if (colors.length > 0 && Object.keys(colorMatches).length === 0 && beadColors.length > 0) {
-      matchColors(colors);
+    const representatives = groups.map(g => g.representative);
+    if (representatives.length > 0 && Object.keys(colorMatches).length === 0 && beadColors.length > 0) {
+      matchColors(representatives, groups);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parsedPixels, beadColors]);
 
   // Re-match when palette selection changes
   useEffect(() => {
-    if (uniqueColors.length > 0 && beadColors.length > 0) {
-      matchColors(uniqueColors);
+    if (colorGroups.length > 0 && beadColors.length > 0) {
+      const representatives = colorGroups.map(g => g.representative);
+      matchColors(representatives, colorGroups);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPalettes]);
 
   // Re-match when color match mode changes
   useEffect(() => {
-    if (uniqueColors.length > 0 && beadColors.length > 0) {
-      matchColors(uniqueColors);
+    if (colorGroups.length > 0 && beadColors.length > 0) {
+      const representatives = colorGroups.map(g => g.representative);
+      matchColors(representatives, colorGroups);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [colorMatchMode]);
 
   // Match colors locally (browser-only)
-  const matchColors = (colors) => {
+  const matchColors = (colors, groups) => {
     if (colors.length === 0 || beadColors.length === 0) return;
 
     setIsLoading(true);
@@ -114,8 +120,13 @@ export default function ColorPalette() {
             distance: minDistance
           };
 
-          // Update the store's color mapping
-          updateColorMapping(imageColorHex, closestBead.id);
+          // Update the store's color mapping for all members of this color's group
+          const group = groups.find(g => g.representative === imageColorHex);
+          if (group) {
+            group.members.forEach(memberHex => {
+              updateColorMapping(memberHex, closestBead.id);
+            });
+          }
         }
       });
 
@@ -128,18 +139,18 @@ export default function ColorPalette() {
   };
 
   // Handle manual color remapping
-  const handleColorClick = (imageColor) => {
-    setSelectedColor(imageColor);
+  const handleColorClick = (group) => {
+    setSelectedGroup(group);
     setShowColorPicker(true);
   };
 
   const handleBeadColorSelect = (beadColorId, beadColorHex, beadColorName, beadColorCode) => {
-    if (!selectedColor) return;
+    if (!selectedGroup) return;
 
-    // Update the color match
+    // Update the color match for the representative
     setColorMatches(prev => ({
       ...prev,
-      [selectedColor]: {
+      [selectedGroup.representative]: {
         beadColorId,
         beadColorHex,
         beadColorName,
@@ -148,22 +159,25 @@ export default function ColorPalette() {
       }
     }));
 
-    // Update the store
-    updateColorMapping(selectedColor, beadColorId);
+    // Update the store for ALL colors in this group
+    selectedGroup.members.forEach(memberHex => {
+      updateColorMapping(memberHex, beadColorId);
+    });
 
     // Close picker
     setShowColorPicker(false);
-    setSelectedColor(null);
+    setSelectedGroup(null);
   };
 
-  // Count pixels per color
-  const getColorCount = (hex) => {
+  // Count pixels for a color group (all members)
+  const getGroupPixelCount = (group) => {
     if (!parsedPixels) return 0;
     let count = 0;
+    const memberSet = new Set(group.members);
     parsedPixels.grid.forEach(row => {
       row.forEach(pixel => {
         const pixelHex = rgbToHex(pixel.r, pixel.g, pixel.b);
-        if (pixelHex === hex) count++;
+        if (memberSet.has(pixelHex)) count++;
       });
     });
     return count;
@@ -210,7 +224,7 @@ export default function ColorPalette() {
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-white">Color Palette</h2>
           <div className="text-sm text-gray-400">
-            {uniqueColors.length} unique colors
+            {colorGroups.length} color groups
           </div>
         </div>
         <svg
@@ -227,16 +241,17 @@ export default function ColorPalette() {
         <div className="px-4 sm:px-6 pb-4 sm:pb-6">
           {/* Color matches */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-        {uniqueColors.map(imageColor => {
+        {colorGroups.map(group => {
+          const imageColor = group.representative;
           const match = colorMatches[imageColor];
-          const count = getColorCount(imageColor);
+          const count = getGroupPixelCount(group);
           const percentage = ((count / (parsedPixels.width * parsedPixels.height)) * 100).toFixed(1);
 
           return (
             <div
               key={imageColor}
               className="flex flex-col gap-2 p-2 sm:p-3 bg-gray-700/50 rounded hover:bg-gray-700 transition-colors cursor-pointer"
-              onClick={() => handleColorClick(imageColor)}
+              onClick={() => handleColorClick(group)}
             >
               {/* Color swatches */}
               <div className="flex items-center gap-2">
@@ -266,6 +281,11 @@ export default function ColorPalette() {
               <div className="min-w-0">
                 <div className="text-xs text-gray-400 mb-1">
                   {imageColor} → {match ? match.beadColorHex : 'No match'}
+                  {group.members.length > 1 && (
+                    <span className="ml-1 text-gray-500">
+                      (+{group.members.length - 1} similar)
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm font-medium text-white truncate">
                   {match ? (match.beadColorCode ? `${formatBeadCode(match.beadColorCode)} - ${match.beadColorName}` : match.beadColorName) : 'No match'}
@@ -287,14 +307,15 @@ export default function ColorPalette() {
       )}
 
       {/* Color picker modal */}
-      {showColorPicker && selectedColor && (
+      {showColorPicker && selectedGroup && (
         <ColorPickerModal
-          imageColor={selectedColor}
-          currentMatch={colorMatches[selectedColor]}
+          imageColor={selectedGroup.representative}
+          groupSize={selectedGroup.members.length}
+          currentMatch={colorMatches[selectedGroup.representative]}
           onSelect={handleBeadColorSelect}
           onClose={() => {
             setShowColorPicker(false);
-            setSelectedColor(null);
+            setSelectedGroup(null);
           }}
         />
       )}
@@ -303,7 +324,7 @@ export default function ColorPalette() {
 }
 
 // Color picker modal component
-function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
+function ColorPickerModal({ imageColor, groupSize = 1, currentMatch, onSelect, onClose }) {
   const [filter, setFilter] = useState('');
 
   // Get current bead colors from palette store - subscribe to selectedPalettes to trigger re-render
@@ -358,7 +379,14 @@ function ColorPickerModal({ imageColor, currentMatch, onSelect, onClose }) {
               style={{ backgroundColor: imageColor }}
             />
             <div>
-              <div className="text-sm font-medium text-gray-300">Image Color</div>
+              <div className="text-sm font-medium text-gray-300">
+                Image Color
+                {groupSize > 1 && (
+                  <span className="ml-2 text-gray-500 font-normal">
+                    ({groupSize} similar colors)
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500">{imageColor}</div>
             </div>
           </div>
@@ -432,4 +460,62 @@ function formatBeadName(color) {
   if (!color) return '';
   const formattedCode = formatBeadCode(color.code);
   return formattedCode ? `${formattedCode} - ${color.name}` : color.name;
+}
+
+// Quantize colors by grouping similar ones together
+// Returns array of { representative: string, members: string[] }
+function quantizeColors(colors, threshold = 30) {
+  if (colors.length === 0) return [];
+
+  const groups = [];
+  const assigned = new Set();
+
+  // Sort colors by hex value for consistent grouping
+  const sortedColors = [...colors].sort();
+
+  for (const color of sortedColors) {
+    if (assigned.has(color)) continue;
+
+    // Start a new group with this color as representative
+    const members = [color];
+    assigned.add(color);
+
+    // Find all similar colors
+    for (const other of sortedColors) {
+      if (assigned.has(other)) continue;
+
+      const distance = hexColorDistance(color, other);
+      if (distance < threshold) {
+        members.push(other);
+        assigned.add(other);
+      }
+    }
+
+    groups.push({ representative: color, members });
+  }
+
+  console.log(`Color quantization: ${colors.length} colors → ${groups.length} groups`);
+  return groups;
+}
+
+// Calculate RGB distance between two hex colors
+function hexColorDistance(hex1, hex2) {
+  const rgb1 = hexToRgbValues(hex1);
+  const rgb2 = hexToRgbValues(hex2);
+
+  const dr = rgb1.r - rgb2.r;
+  const dg = rgb1.g - rgb2.g;
+  const db = rgb1.b - rgb2.b;
+
+  return Math.sqrt(dr * dr + dg * dg + db * db);
+}
+
+// Parse hex color to RGB values
+function hexToRgbValues(hex) {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : { r: 0, g: 0, b: 0 };
 }
