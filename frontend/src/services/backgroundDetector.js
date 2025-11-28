@@ -56,6 +56,7 @@ function detectAlphaTransparency(alphaData, width, height) {
 
 /**
  * Phase 2: Detect edge-connected regions for opaque images
+ * Starts from all 4 corners and marks any regions with matching colors as background
  * @param {Array} beadGrid - 2D array of bead IDs
  * @param {number} width - Grid width
  * @param {number} height - Grid height
@@ -65,17 +66,70 @@ function detectEdgeRegions(beadGrid, width, height) {
   const visited = Array(height).fill(0).map(() => Array(width).fill(false));
   const backgroundMask = Array(height).fill(0).map(() => Array(width).fill(false));
 
-  // Find all edge-touching regions and track the largest one
+  // Get the bead colors at all 4 corners
+  const corners = [
+    { x: 0, y: 0 },                    // top-left
+    { x: width - 1, y: 0 },            // top-right
+    { x: 0, y: height - 1 },           // bottom-left
+    { x: width - 1, y: height - 1 }    // bottom-right
+  ];
+
+  // Find the most common corner color (likely the background)
+  const cornerColors = corners.map(c => beadGrid[c.y][c.x]);
+  const colorCounts = {};
+  cornerColors.forEach(color => {
+    colorCounts[color] = (colorCounts[color] || 0) + 1;
+  });
+
+  // Find color that appears in most corners
+  let backgroundColorId = null;
+  let maxCount = 0;
+  for (const [colorId, count] of Object.entries(colorCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      backgroundColorId = colorId;
+    }
+  }
+
+  // If no corner has a matching color with another, fall back to largest edge region
+  if (maxCount < 2) {
+    return detectLargestEdgeRegion(beadGrid, width, height);
+  }
+
+  console.log(`Background detection: ${maxCount}/4 corners have color ${backgroundColorId}`);
+
+  // Flood fill from each corner that has the background color
+  for (const corner of corners) {
+    if (beadGrid[corner.y][corner.x] == backgroundColorId && !visited[corner.y][corner.x]) {
+      const region = floodFill(beadGrid, visited, corner.x, corner.y, width, height);
+      region.forEach(({ x, y }) => {
+        backgroundMask[y][x] = true;
+      });
+    }
+  }
+
+  return backgroundMask;
+}
+
+/**
+ * Fallback: Find largest edge-touching region
+ * @param {Array} beadGrid - 2D array of bead IDs
+ * @param {number} width - Grid width
+ * @param {number} height - Grid height
+ * @returns {Array} 2D boolean array
+ */
+function detectLargestEdgeRegion(beadGrid, width, height) {
+  const visited = Array(height).fill(0).map(() => Array(width).fill(false));
+  const backgroundMask = Array(height).fill(0).map(() => Array(width).fill(false));
+
   let largestEdgeRegion = null;
   let largestSize = 0;
 
-  // Find all connected components
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       if (!visited[y][x]) {
         const region = floodFill(beadGrid, visited, x, y, width, height);
 
-        // If region touches edge and is larger than current largest, track it
         if (touchesEdge(region, width, height) && region.length > largestSize) {
           largestEdgeRegion = region;
           largestSize = region.length;
@@ -84,7 +138,6 @@ function detectEdgeRegions(beadGrid, width, height) {
     }
   }
 
-  // Only mark the largest edge-touching region as background
   if (largestEdgeRegion) {
     largestEdgeRegion.forEach(({ x, y }) => {
       backgroundMask[y][x] = true;
