@@ -109,9 +109,9 @@ export function validateImageDimensions(img) {
 }
 
 /**
- * Detect grid size in an image using autocorrelation on edge profiles
+ * Detect grid size and offset in an image using autocorrelation on edge profiles
  * @param {HTMLImageElement} img - The image
- * @returns {number} Detected grid size (pixels per cell)
+ * @returns {{gridSize: number, offsetX: number, offsetY: number}} Detected grid parameters
  */
 export function detectGridSize(img) {
   console.log('Starting grid detection for image:', img.width, 'x', img.height);
@@ -160,15 +160,60 @@ export function detectGridSize(img) {
   }
 
   // Scale back to original image coordinates
-  const originalGridSize = Math.round(detectedSize / scale);
+  const originalGridSize = Math.max(1, Math.round(detectedSize / scale));
+
+  // Detect offsets if we found a valid grid
+  let offsetX = 0;
+  let offsetY = 0;
 
   if (originalGridSize > 1) {
-    console.log('✓ Detected grid size:', originalGridSize, '(scaled:', detectedSize, ')');
+    // Find offset by locating first strong edge in each profile
+    offsetX = Math.round(findGridOffset(hProfile, detectedSize) / scale);
+    offsetY = Math.round(findGridOffset(vProfile, detectedSize) / scale);
+
+    // Ensure offsets are within valid range [0, gridSize)
+    offsetX = ((offsetX % originalGridSize) + originalGridSize) % originalGridSize;
+    offsetY = ((offsetY % originalGridSize) + originalGridSize) % originalGridSize;
+
+    console.log('✓ Detected grid size:', originalGridSize, 'offset:', offsetX, ',', offsetY);
   } else {
     console.log('⚠ No grid detected, using size 1');
   }
 
-  return Math.max(1, originalGridSize);
+  return { gridSize: originalGridSize, offsetX, offsetY };
+}
+
+/**
+ * Find the grid offset by locating the first strong edge peak
+ * @param {Float32Array} profile - Edge intensity profile
+ * @param {number} gridSize - Detected grid size
+ * @returns {number} Offset in pixels (0 to gridSize-1)
+ */
+function findGridOffset(profile, gridSize) {
+  if (gridSize <= 1 || profile.length < gridSize) {
+    return 0;
+  }
+
+  // Compute threshold as a fraction of the maximum edge intensity
+  let maxEdge = 0;
+  for (let i = 0; i < profile.length; i++) {
+    if (profile[i] > maxEdge) maxEdge = profile[i];
+  }
+
+  const threshold = maxEdge * 0.3;
+
+  // Find the first position with edge intensity above threshold
+  // This represents the first cell boundary
+  for (let i = 0; i < Math.min(gridSize, profile.length); i++) {
+    if (profile[i] > threshold) {
+      // The offset is the position just after this edge
+      // (the edge marks the END of a cell, so next pixel starts a new cell)
+      return (i + 1) % gridSize;
+    }
+  }
+
+  // If no strong edge found in first gridSize pixels, assume offset 0
+  return 0;
 }
 
 /**

@@ -78,8 +78,11 @@ const useProjectStore = create(
         console.warn(dimCheck.message);
         requiresConfirmation = true;
 
-        // Detect grid size for large images
-        gridSize = detectGridSize(img);
+        // Detect grid size and offset for large images
+        const detection = detectGridSize(img);
+        gridSize = detection.gridSize;
+        let offsetX = detection.offsetX;
+        let offsetY = detection.offsetY;
 
         // Force downsampling if image is very large and no grid detected
         if (gridSize === 1) {
@@ -91,19 +94,21 @@ const useProjectStore = create(
               Math.ceil(img.width / targetSize),
               Math.ceil(img.height / targetSize)
             );
+            offsetX = 0;
+            offsetY = 0;
             console.log(`⚠ Forcing grid size ${gridSize} to reduce from ${img.width}x${img.height} to ~${Math.floor(img.width/gridSize)}x${Math.floor(img.height/gridSize)}`);
           }
         }
 
-        const gridCols = Math.floor(img.width / gridSize);
-        const gridRows = Math.floor(img.height / gridSize);
+        const gridCols = Math.floor((img.width - offsetX) / gridSize);
+        const gridRows = Math.floor((img.height - offsetY) / gridSize);
 
         gridInfo = {
           detected_grid_size: gridSize,
           cell_width: gridSize,
           cell_height: gridSize,
-          offset_x: 0,
-          offset_y: 0,
+          offset_x: offsetX,
+          offset_y: offsetY,
           grid_cols: gridCols,
           grid_rows: gridRows,
           confidence: gridSize > 1 ? 95 : 0,
