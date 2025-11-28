@@ -116,20 +116,21 @@ export function validateImageDimensions(img) {
 export function detectGridSize(img) {
   console.log('Starting grid detection for image:', img.width, 'x', img.height);
 
-  // Sample image to reasonable size for analysis
+  // Work at full resolution but crop to a region for analysis
+  // This preserves exact pixel grid spacing (no scaling artifacts)
   const canvas = document.createElement('canvas');
-  const maxAnalysisSize = 400;
-  const scale = Math.min(1, maxAnalysisSize / Math.max(img.width, img.height));
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
+  const maxAnalysisSize = 500;
+  canvas.width = Math.min(img.width, maxAnalysisSize);
+  canvas.height = Math.min(img.height, maxAnalysisSize);
 
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  // Draw top-left region at 1:1 scale (no resizing)
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
 
-  // Maximum grid size to search (in scaled pixels)
-  const maxGridSize = Math.min(64, Math.floor(Math.min(canvas.width, canvas.height) / 4));
+  // Maximum grid size to search (in pixels)
+  const maxGridSize = Math.min(100, Math.floor(Math.min(canvas.width, canvas.height) / 4));
 
   // Compute edge profiles in both directions
   const hProfile = computeEdgeProfile(pixels, canvas.width, canvas.height, 'horizontal');
@@ -147,73 +148,78 @@ export function detectGridSize(img) {
   console.log('Vertical grid size detected:', vGridSize);
 
   // Use the size that appears in both directions, or the smaller valid one
-  let detectedSize;
+  let gridSize;
   if (hGridSize === vGridSize) {
-    detectedSize = hGridSize;
+    gridSize = hGridSize;
   } else if (hGridSize === 1) {
-    detectedSize = vGridSize;
+    gridSize = vGridSize;
   } else if (vGridSize === 1) {
-    detectedSize = hGridSize;
+    gridSize = hGridSize;
   } else {
     // Both detected different sizes - use smaller (finer granularity)
-    detectedSize = Math.min(hGridSize, vGridSize);
+    gridSize = Math.min(hGridSize, vGridSize);
   }
-
-  // Scale back to original image coordinates
-  const originalGridSize = Math.max(1, Math.round(detectedSize / scale));
 
   // Detect offsets if we found a valid grid
   let offsetX = 0;
   let offsetY = 0;
 
-  if (originalGridSize > 1) {
-    // Find offset by locating first strong edge in each profile
-    offsetX = Math.round(findGridOffset(hProfile, detectedSize) / scale);
-    offsetY = Math.round(findGridOffset(vProfile, detectedSize) / scale);
+  if (gridSize > 1) {
+    offsetX = findGridOffset(hProfile, gridSize);
+    offsetY = findGridOffset(vProfile, gridSize);
 
-    // Ensure offsets are within valid range [0, gridSize)
-    offsetX = ((offsetX % originalGridSize) + originalGridSize) % originalGridSize;
-    offsetY = ((offsetY % originalGridSize) + originalGridSize) % originalGridSize;
-
-    console.log('✓ Detected grid size:', originalGridSize, 'offset:', offsetX, ',', offsetY);
+    console.log('✓ Detected grid size:', gridSize, 'offset:', offsetX, ',', offsetY);
   } else {
     console.log('⚠ No grid detected, using size 1');
   }
 
-  return { gridSize: originalGridSize, offsetX, offsetY };
+  return { gridSize: Math.max(1, gridSize), offsetX, offsetY };
 }
 
 /**
- * Find the grid offset by locating the first strong edge peak
+ * Find the grid offset by testing which phase alignment produces strongest edges
  * @param {Float32Array} profile - Edge intensity profile
  * @param {number} gridSize - Detected grid size
  * @returns {number} Offset in pixels (0 to gridSize-1)
  */
 function findGridOffset(profile, gridSize) {
-  if (gridSize <= 1 || profile.length < gridSize) {
+  if (gridSize <= 1 || profile.length < gridSize * 2) {
     return 0;
   }
 
-  // Compute threshold as a fraction of the maximum edge intensity
-  let maxEdge = 0;
-  for (let i = 0; i < profile.length; i++) {
-    if (profile[i] > maxEdge) maxEdge = profile[i];
-  }
+  // For each possible offset (0 to gridSize-1), sum edge intensities
+  // at positions where cell boundaries would be: offset-1, offset+gridSize-1, etc.
+  // The offset with highest total edge intensity is the correct alignment
+  let bestOffset = 0;
+  let bestScore = -1;
 
-  const threshold = maxEdge * 0.3;
+  for (let offset = 0; offset < gridSize; offset++) {
+    let score = 0;
+    let count = 0;
 
-  // Find the first position with edge intensity above threshold
-  // This represents the first cell boundary
-  for (let i = 0; i < Math.min(gridSize, profile.length); i++) {
-    if (profile[i] > threshold) {
-      // The offset is the position just after this edge
-      // (the edge marks the END of a cell, so next pixel starts a new cell)
-      return (i + 1) % gridSize;
+    // Cell boundaries occur at: offset-1, offset+gridSize-1, offset+2*gridSize-1, ...
+    // (the pixel BEFORE each cell start is where the edge/color change is)
+    // But if offset=0, the first boundary is at gridSize-1
+    const firstBoundary = offset === 0 ? gridSize - 1 : offset - 1;
+
+    for (let pos = firstBoundary; pos < profile.length; pos += gridSize) {
+      score += profile[pos];
+      count++;
+    }
+
+    // Normalize by count to handle different number of samples
+    if (count > 0) {
+      score /= count;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestOffset = offset;
     }
   }
 
-  // If no strong edge found in first gridSize pixels, assume offset 0
-  return 0;
+  console.log('Offset detection: best offset =', bestOffset, 'with score =', bestScore.toFixed(2));
+  return bestOffset;
 }
 
 /**
@@ -316,8 +322,8 @@ function findBestGridSize(correlations) {
   const minGridSize = 2;
   const threshold = 0.3; // Minimum correlation to consider valid
 
-  let bestSize = 1;
-  let bestScore = 0;
+  // Find all peaks (local maxima above threshold)
+  const peaks = [];
 
   for (let size = minGridSize; size < correlations.length; size++) {
     const correlation = correlations[size - 1];
@@ -330,19 +336,35 @@ function findBestGridSize(correlations) {
     const next = size < correlations.length - 1 ? correlations[size] : 0;
 
     if (correlation > prev && correlation > next) {
-      // Score combines correlation strength with preference for smaller grids
-      // Smaller grids are preferred (they represent finer detail)
-      const sizeBonus = 1 / Math.sqrt(size);
-      const score = correlation * sizeBonus;
-
-      if (score > bestScore) {
-        bestScore = score;
-        bestSize = size;
-      }
+      peaks.push({ size, correlation });
     }
   }
 
-  return bestSize;
+  if (peaks.length === 0) {
+    return 1;
+  }
+
+  // Log all peaks for debugging
+  console.log('Autocorrelation peaks:', peaks.map(p => `${p.size}:${p.correlation.toFixed(3)}`).join(', '));
+
+  // Find the strongest peak
+  let strongestPeak = peaks[0];
+  for (const peak of peaks) {
+    if (peak.correlation > strongestPeak.correlation) {
+      strongestPeak = peak;
+    }
+  }
+
+  // Return the smallest peak that's at least 80% as strong as the strongest
+  // This helps avoid harmonics (e.g., detecting 10 instead of 5 when true grid is 10)
+  const minAcceptableCorrelation = strongestPeak.correlation * 0.8;
+  for (const peak of peaks) {
+    if (peak.correlation >= minAcceptableCorrelation) {
+      return peak.size;
+    }
+  }
+
+  return strongestPeak.size;
 }
 
 /**
