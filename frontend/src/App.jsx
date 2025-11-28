@@ -99,8 +99,34 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900">
       <header className="bg-gray-800 shadow-lg border-b border-gray-700">
-        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4">
+        <div className="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Beadsprite Helper</h1>
+          <div className="flex items-center gap-3 sm:gap-4 text-sm">
+            <a
+              href="https://github.com/wobufetmaster/beadsprite_helper"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              GitHub
+            </a>
+            <a
+              href="https://github.com/wobufetmaster/beadsprite_helper/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              Report Bug
+            </a>
+            <a
+              href="https://ko-fi.com/wobufetdev"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-pink-400 hover:text-pink-300 transition-colors"
+            >
+              Ko-fi
+            </a>
+          </div>
         </div>
       </header>
       <main className="max-w-7xl mx-auto py-3 sm:py-6 px-3 sm:px-4 space-y-4 sm:space-y-6">

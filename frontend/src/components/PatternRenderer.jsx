@@ -184,36 +184,18 @@ export default function PatternRenderer({
         const posY = canvasY * pixelSize;
 
         if (beadShape === 'circle') {
-          // Draw circular bead with radial gradient for depth
+          // Draw circular bead with hollow center (like real perler beads)
           const centerX = posX + pixelSize / 2;
           const centerY = posY + pixelSize / 2;
-          const radius = pixelSize * 0.4; // 80% of cell (40% radius)
+          const outerRadius = pixelSize * 0.45;
+          const innerRadius = pixelSize * 0.25;
 
-          // Create radial gradient
-          const gradient = ctx.createRadialGradient(
-            centerX - radius * 0.3,
-            centerY - radius * 0.3,
-            radius * 0.1,
-            centerX,
-            centerY,
-            radius
-          );
-
-          // Lighter center for 3D effect
-          const lightColor = lightenColor(beadHex, 30);
-          gradient.addColorStop(0, lightColor);
-          gradient.addColorStop(0.7, beadHex);
-          gradient.addColorStop(1, darkenColor(beadHex, 20));
-
-          ctx.fillStyle = gradient;
+          // Draw the bead as a ring
+          ctx.fillStyle = beadHex;
           ctx.beginPath();
-          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true); // counterclockwise for hole
           ctx.fill();
-
-          // Add subtle stroke
-          ctx.strokeStyle = darkenColor(beadHex, 30);
-          ctx.lineWidth = Math.max(1, pixelSize / 20);
-          ctx.stroke();
         } else {
           // Draw square bead
           ctx.fillStyle = beadHex;

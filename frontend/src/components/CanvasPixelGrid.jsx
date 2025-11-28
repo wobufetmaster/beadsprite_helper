@@ -105,32 +105,28 @@ export default function CanvasPixelGrid({
         const py = y * cellSize;
 
         if (beadShape === 'circle') {
-          // Draw circular bead
-          ctx.beginPath();
+          // Draw circular bead with hollow center (like real perler beads)
           const centerX = px + cellSize / 2;
           const centerY = py + cellSize / 2;
-          const radius = cellSize * 0.4;
-          ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+          const outerRadius = cellSize * 0.45;
+          const innerRadius = cellSize * 0.25;
+
+          // Draw the bead as a ring
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2, true); // counterclockwise for hole
           ctx.fill();
 
-          // Add bead shadow/depth
-          if (!isBackground) {
-            ctx.globalAlpha = 0.3;
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1.0;
-          }
+          // No gridlines in bead mode - just the beads
         } else {
           // Draw square pixel
           ctx.fillRect(px, py, cellSize, cellSize);
-        }
 
-        // Draw cell borders
-        ctx.strokeStyle = 'rgba(107, 114, 128, 0.3)';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px, py, cellSize, cellSize);
+          // Draw cell borders (only in pixel mode)
+          ctx.strokeStyle = 'rgba(107, 114, 128, 0.3)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(px, py, cellSize, cellSize);
+        }
       }
     }
 
@@ -174,7 +170,15 @@ export default function CanvasPixelGrid({
       const py = selectedCell.y * cellSize;
       ctx.strokeStyle = 'rgba(59, 130, 246, 1)';
       ctx.lineWidth = 3;
-      ctx.strokeRect(px, py, cellSize, cellSize);
+
+      if (beadShape === 'circle') {
+        // Circular highlight for bead mode
+        ctx.beginPath();
+        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize * 0.45, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(px, py, cellSize, cellSize);
+      }
     }
 
     // Draw hovered cell highlight
@@ -183,7 +187,15 @@ export default function CanvasPixelGrid({
       const py = hoveredCell.y * cellSize;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
       ctx.lineWidth = 2;
-      ctx.strokeRect(px, py, cellSize, cellSize);
+
+      if (beadShape === 'circle') {
+        // Circular highlight for bead mode
+        ctx.beginPath();
+        ctx.arc(px + cellSize / 2, py + cellSize / 2, cellSize * 0.45, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.strokeRect(px, py, cellSize, cellSize);
+      }
     }
 
     ctx.globalAlpha = 1.0;
