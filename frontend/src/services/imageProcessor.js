@@ -109,99 +109,195 @@ export function validateImageDimensions(img) {
 }
 
 /**
- * Detect grid size in an image (for upscaled pixel art)
+ * Detect grid size in an image using autocorrelation on edge profiles
  * @param {HTMLImageElement} img - The image
  * @returns {number} Detected grid size (pixels per cell)
  */
 export function detectGridSize(img) {
   console.log('Starting grid detection for image:', img.width, 'x', img.height);
 
+  // Sample image to reasonable size for analysis
   const canvas = document.createElement('canvas');
-  canvas.width = Math.min(img.width, 400);
-  canvas.height = Math.min(img.height, 400);
+  const maxAnalysisSize = 400;
+  const scale = Math.min(1, maxAnalysisSize / Math.max(img.width, img.height));
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+
   const ctx = canvas.getContext('2d');
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
   const pixels = imageData.data;
 
-  // Try common grid sizes (starting with larger ones for screenshots)
-  const gridSizesToTry = [32, 24, 20, 16, 15, 12, 10, 8, 6, 5, 4, 3, 2, 1];
+  // Maximum grid size to search (in scaled pixels)
+  const maxGridSize = Math.min(64, Math.floor(Math.min(canvas.width, canvas.height) / 4));
 
-  for (const gridSize of gridSizesToTry) {
-    console.log('Trying grid size:', gridSize);
-    if (isValidGridSize(pixels, canvas.width, canvas.height, gridSize)) {
-      console.log('✓ Detected grid size:', gridSize);
-      return gridSize;
-    }
+  // Compute edge profiles in both directions
+  const hProfile = computeEdgeProfile(pixels, canvas.width, canvas.height, 'horizontal');
+  const vProfile = computeEdgeProfile(pixels, canvas.width, canvas.height, 'vertical');
+
+  // Compute autocorrelation for both profiles
+  const hCorrelations = computeAutocorrelation(hProfile, maxGridSize);
+  const vCorrelations = computeAutocorrelation(vProfile, maxGridSize);
+
+  // Find best grid size from each direction
+  const hGridSize = findBestGridSize(hCorrelations);
+  const vGridSize = findBestGridSize(vCorrelations);
+
+  console.log('Horizontal grid size detected:', hGridSize);
+  console.log('Vertical grid size detected:', vGridSize);
+
+  // Use the size that appears in both directions, or the smaller valid one
+  let detectedSize;
+  if (hGridSize === vGridSize) {
+    detectedSize = hGridSize;
+  } else if (hGridSize === 1) {
+    detectedSize = vGridSize;
+  } else if (vGridSize === 1) {
+    detectedSize = hGridSize;
+  } else {
+    // Both detected different sizes - use smaller (finer granularity)
+    detectedSize = Math.min(hGridSize, vGridSize);
   }
 
-  // Default to 1 (no grid)
-  console.log('⚠ No grid detected, using size 1 (will be slow for large images)');
-  return 1;
+  // Scale back to original image coordinates
+  const originalGridSize = Math.round(detectedSize / scale);
+
+  if (originalGridSize > 1) {
+    console.log('✓ Detected grid size:', originalGridSize, '(scaled:', detectedSize, ')');
+  } else {
+    console.log('⚠ No grid detected, using size 1');
+  }
+
+  return Math.max(1, originalGridSize);
 }
 
 /**
- * Check if a grid size is valid for the image
- * @param {Uint8ClampedArray} pixels - Image pixel data
+ * Compute edge intensity profile along one axis
+ * @param {Uint8ClampedArray} pixels - RGBA pixel data
  * @param {number} width - Image width
  * @param {number} height - Image height
- * @param {number} gridSize - Grid size to test
- * @returns {boolean} True if valid grid size
+ * @param {string} axis - 'horizontal' or 'vertical'
+ * @returns {Float32Array} Edge intensity at each position along the axis
  */
-function isValidGridSize(pixels, width, height, gridSize) {
-  if (width % gridSize !== 0 || height % gridSize !== 0) {
-    return false;
-  }
+function computeEdgeProfile(pixels, width, height, axis) {
+  const isHorizontal = axis === 'horizontal';
+  const length = isHorizontal ? width - 1 : height - 1;
+  const profile = new Float32Array(length);
 
-  // Sample a few grid cells and check if pixels within each cell are uniform
-  const cellsToCheck = 10;
-  const cellsPerRow = Math.floor(width / gridSize);
-  const cellsPerCol = Math.floor(height / gridSize);
+  // Sample multiple lines for robustness
+  const numSamples = Math.min(isHorizontal ? height : width, 50);
+  const step = Math.floor((isHorizontal ? height : width) / numSamples);
 
-  for (let i = 0; i < cellsToCheck; i++) {
-    const cellX = Math.floor(Math.random() * cellsPerRow);
-    const cellY = Math.floor(Math.random() * cellsPerCol);
+  for (let sample = 0; sample < numSamples; sample++) {
+    const line = sample * step;
 
-    if (!isCellUniform(pixels, width, cellX * gridSize, cellY * gridSize, gridSize)) {
-      return false;
+    for (let i = 0; i < length; i++) {
+      let idx1, idx2;
+
+      if (isHorizontal) {
+        idx1 = (line * width + i) * 4;
+        idx2 = (line * width + i + 1) * 4;
+      } else {
+        idx1 = (i * width + line) * 4;
+        idx2 = ((i + 1) * width + line) * 4;
+      }
+
+      // Compute color difference (sum of absolute RGB differences)
+      const diff = Math.abs(pixels[idx1] - pixels[idx2]) +
+                   Math.abs(pixels[idx1 + 1] - pixels[idx2 + 1]) +
+                   Math.abs(pixels[idx1 + 2] - pixels[idx2 + 2]);
+
+      profile[i] += diff;
     }
   }
 
-  return true;
+  // Normalize by number of samples
+  for (let i = 0; i < length; i++) {
+    profile[i] /= numSamples;
+  }
+
+  return profile;
 }
 
 /**
- * Check if a grid cell has uniform color
- * @param {Uint8ClampedArray} pixels - Image pixel data
- * @param {number} width - Image width
- * @param {number} startX - Cell start X
- * @param {number} startY - Cell start Y
- * @param {number} gridSize - Grid size
- * @returns {boolean} True if cell is uniform
+ * Compute autocorrelation of edge profile to find periodic patterns
+ * @param {Float32Array} profile - Edge intensity profile
+ * @param {number} maxShift - Maximum shift to test
+ * @returns {Float32Array} Correlation value for each shift (1 to maxShift)
  */
-function isCellUniform(pixels, width, startX, startY, gridSize) {
-  // Get first pixel color
-  const firstIdx = (startY * width + startX) * 4;
-  const r = pixels[firstIdx];
-  const g = pixels[firstIdx + 1];
-  const b = pixels[firstIdx + 2];
+function computeAutocorrelation(profile, maxShift) {
+  const correlations = new Float32Array(maxShift);
+  const n = profile.length;
 
-  // Check all pixels in cell
-  for (let dy = 0; dy < gridSize; dy++) {
-    for (let dx = 0; dx < gridSize; dx++) {
-      const idx = ((startY + dy) * width + (startX + dx)) * 4;
-      const dr = Math.abs(pixels[idx] - r);
-      const dg = Math.abs(pixels[idx + 1] - g);
-      const db = Math.abs(pixels[idx + 2] - b);
+  // Compute mean for normalization
+  let mean = 0;
+  for (let i = 0; i < n; i++) {
+    mean += profile[i];
+  }
+  mean /= n;
 
-      // Allow small variations (5 per channel)
-      if (dr > 5 || dg > 5 || db > 5) {
-        return false;
+  // Compute variance for normalization
+  let variance = 0;
+  for (let i = 0; i < n; i++) {
+    variance += (profile[i] - mean) ** 2;
+  }
+
+  if (variance === 0) {
+    return correlations; // Flat profile, no edges
+  }
+
+  // Compute normalized autocorrelation for each shift
+  for (let shift = 1; shift <= maxShift; shift++) {
+    let sum = 0;
+    const validLength = n - shift;
+
+    for (let i = 0; i < validLength; i++) {
+      sum += (profile[i] - mean) * (profile[i + shift] - mean);
+    }
+
+    // Normalize to [-1, 1] range
+    correlations[shift - 1] = sum / variance;
+  }
+
+  return correlations;
+}
+
+/**
+ * Find the best grid size from autocorrelation results
+ * @param {Float32Array} correlations - Autocorrelation values for shifts 1..N
+ * @returns {number} Best grid size, or 1 if no clear pattern found
+ */
+function findBestGridSize(correlations) {
+  const minGridSize = 2;
+  const threshold = 0.3; // Minimum correlation to consider valid
+
+  let bestSize = 1;
+  let bestScore = 0;
+
+  for (let size = minGridSize; size < correlations.length; size++) {
+    const correlation = correlations[size - 1];
+
+    // Must exceed threshold
+    if (correlation < threshold) continue;
+
+    // Check if this is a local maximum (peak)
+    const prev = size > minGridSize ? correlations[size - 2] : 0;
+    const next = size < correlations.length - 1 ? correlations[size] : 0;
+
+    if (correlation > prev && correlation > next) {
+      // Score combines correlation strength with preference for smaller grids
+      // Smaller grids are preferred (they represent finer detail)
+      const sizeBonus = 1 / Math.sqrt(size);
+      const score = correlation * sizeBonus;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestSize = size;
       }
     }
   }
 
-  return true;
+  return bestSize;
 }
 
 /**
