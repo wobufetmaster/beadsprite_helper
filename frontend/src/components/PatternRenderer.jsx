@@ -12,6 +12,7 @@ export default function PatternRenderer({
   beadShape = 'square',
   showPegboardGrid = false,
   pegboardSize = 29,
+  isMirrored = false,
   onCanvasReady,
 }) {
   const canvasRef = useRef(null);
@@ -163,12 +164,15 @@ export default function PatternRenderer({
         // Skip if outside grid bounds
         if (gridY < 0 || gridY >= gridHeight || gridX < 0 || gridX >= gridWidth) continue;
 
+        // When mirrored, read from the opposite x position in the source grid
+        const sourceX = isMirrored ? (gridWidth - 1 - gridX) : gridX;
+
         // Skip background pixels if removeBackground is true
-        if (backgroundMask && removeBackground && backgroundMask[gridY]?.[gridX]) {
+        if (backgroundMask && removeBackground && backgroundMask[gridY]?.[sourceX]) {
           continue;
         }
 
-        const beadId = beadGrid[gridY][gridX];
+        const beadId = beadGrid[gridY][sourceX];
         const beadHex = beadColorMap[beadId];
 
         if (!beadHex) continue;
@@ -228,7 +232,7 @@ export default function PatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, beadColors, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
+  }, [beadGrid, beadColors, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, isMirrored, onCanvasReady]);
 
   return (
     <canvas

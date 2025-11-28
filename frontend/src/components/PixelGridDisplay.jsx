@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useProjectStore } from '../stores/projectStore';
 import usePaletteStore from '../stores/paletteStore';
+import useUIStore from '../stores/uiStore';
 import { calculateColorDistanceBySpace } from '../utils/colorUtils';
 import CanvasPixelGrid from './CanvasPixelGrid';
 
@@ -50,6 +51,11 @@ export default function PixelGridDisplay() {
     selectedPalettes: state.selectedPalettes,
     isPaletteSelected: state.isPaletteSelected,
     togglePalette: state.togglePalette
+  }));
+
+  const { isMirrored, toggleMirror } = useUIStore(state => ({
+    isMirrored: state.isMirrored,
+    toggleMirror: state.toggleMirror
   }));
 
   const [hoveredCell, setHoveredCell] = useState(null);
@@ -374,6 +380,18 @@ export default function PixelGridDisplay() {
                   <span className="hidden sm:inline">Pegboard Grid</span>
                   <span className="sm:hidden">Pegboard</span>
                 </button>
+                <button
+                  onClick={toggleMirror}
+                  className={`px-2 sm:px-3 py-1 text-xs sm:text-sm rounded transition-colors whitespace-nowrap ${
+                    isMirrored
+                      ? 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                  }`}
+                  title="Mirror horizontally (flip for ironing B-side)"
+                >
+                  <span className="hidden sm:inline">{isMirrored ? '↔ Mirrored' : '↔ Mirror'}</span>
+                  <span className="sm:hidden">{isMirrored ? '↔ Flip' : '↔'}</span>
+                </button>
               </div>
             </div>
 
@@ -543,6 +561,7 @@ export default function PixelGridDisplay() {
           removeBackground={removeBackground}
           selectedCell={selectedCell}
           hoveredCell={hoveredCell}
+          isMirrored={isMirrored}
           onCellClick={handleCellClick}
           onCellHover={handleCellHover}
           onCellLeave={() => setHoveredCell(null)}

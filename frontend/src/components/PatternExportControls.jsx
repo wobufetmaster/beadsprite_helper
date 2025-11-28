@@ -29,6 +29,7 @@ export default function PatternExportControls() {
   const [beadShape, setBeadShape] = useState('square');
   const [showPegboardGrid, setShowPegboardGrid] = useState(true);
   const [pegboardSize, setPegboardSize] = useState(29);
+  const [exportMirrored, setExportMirrored] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const canvasRef = useRef(null);
   const labeledCanvasRef = useRef(null);
@@ -236,6 +237,22 @@ export default function PatternExportControls() {
           </div>
         )}
 
+        {/* Mirror Toggle */}
+        <div className="flex items-center">
+          <input
+            type="checkbox"
+            id="export-mirrored"
+            checked={exportMirrored}
+            onChange={(e) => setExportMirrored(e.target.checked)}
+            disabled={!hasProject || isLoading || isExporting}
+            className="w-4 h-4 text-yellow-600 border-gray-600 rounded focus:ring-yellow-500
+                     disabled:cursor-not-allowed"
+          />
+          <label htmlFor="export-mirrored" className="ml-2 text-sm text-gray-300">
+            Mirror horizontally (B-side for ironing)
+          </label>
+        </div>
+
         {/* Export Button */}
         <button
           onClick={handleExport}
@@ -271,6 +288,7 @@ export default function PatternExportControls() {
           beadShape={beadShape}
           showPegboardGrid={showPegboardGrid}
           pegboardSize={pegboardSize}
+          isMirrored={exportMirrored}
           onCanvasReady={handleCanvasReady}
         />
       )}
@@ -286,6 +304,7 @@ export default function PatternExportControls() {
           beadShape={beadShape}
           showPegboardGrid={showPegboardGrid}
           pegboardSize={pegboardSize}
+          isMirrored={exportMirrored}
           onCanvasReady={handleLabeledCanvasReady}
         />
       )}

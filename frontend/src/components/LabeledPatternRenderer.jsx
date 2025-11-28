@@ -14,6 +14,7 @@ export default function LabeledPatternRenderer({
   beadShape = 'square',
   showPegboardGrid = false,
   pegboardSize = 29,
+  isMirrored = false,
   onCanvasReady,
 }) {
   const canvasRef = useRef(null);
@@ -83,12 +84,15 @@ export default function LabeledPatternRenderer({
     // Draw each pixel
     for (let y = minY; y <= maxY; y++) {
       for (let x = minX; x <= maxX; x++) {
+        // When mirrored, read from the opposite x position in the source grid
+        const sourceX = isMirrored ? (gridWidth - 1 - x) : x;
+
         // Skip background pixels
-        if (backgroundMask && removeBackground && backgroundMask[y]?.[x]) {
+        if (backgroundMask && removeBackground && backgroundMask[y]?.[sourceX]) {
           continue;
         }
 
-        const beadId = beadGrid[y]?.[x];
+        const beadId = beadGrid[y]?.[sourceX];
         if (!beadId) continue;
 
         const beadHex = beadColorMap[beadId] || '#CCCCCC';
@@ -164,7 +168,7 @@ export default function LabeledPatternRenderer({
     if (onCanvasReady) {
       onCanvasReady(canvas);
     }
-  }, [beadGrid, beadColors, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, onCanvasReady]);
+  }, [beadGrid, beadColors, colorLabels, backgroundMask, removeBackground, beadShape, showPegboardGrid, pegboardSize, isMirrored, onCanvasReady]);
 
   return (
     <canvas

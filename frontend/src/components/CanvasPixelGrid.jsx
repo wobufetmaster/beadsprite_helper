@@ -20,6 +20,7 @@ export default function CanvasPixelGrid({
   removeBackground,
   selectedCell,
   hoveredCell,
+  isMirrored,
   onCellClick,
   onCellHover,
   onCellLeave
@@ -85,8 +86,10 @@ export default function CanvasPixelGrid({
     // Draw pixels
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        const pixel = grid[y][x];
-        const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][x];
+        // When mirrored, read from the opposite x position
+        const sourceX = isMirrored ? (width - 1 - x) : x;
+        const pixel = grid[y][sourceX];
+        const isBackground = backgroundMask && removeBackground && backgroundMask[y] && backgroundMask[y][sourceX];
 
         // Skip background pixels if removal is enabled
         if (isBackground) {
@@ -200,6 +203,7 @@ export default function CanvasPixelGrid({
     removeBackground,
     selectedCell,
     hoveredCell,
+    isMirrored,
     getDisplayColor
   ]);
 

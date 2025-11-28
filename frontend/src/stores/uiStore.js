@@ -25,6 +25,9 @@ const useUIStore = create((set) => ({
   zoom: 1.0,
   pan: { x: 0, y: 0 },
 
+  // Mirror mode (for viewing "B-side" when flipping beadsprite to iron)
+  isMirrored: false,
+
   // Actions
   setActiveTool: (tool) => set({ activeTool: tool }),
 
@@ -48,6 +51,9 @@ const useUIStore = create((set) => ({
   setPan: (pan) => set({ pan }),
 
   resetView: () => set({ zoom: 1.0, pan: { x: 0, y: 0 } }),
+
+  toggleMirror: () => set((state) => ({ isMirrored: !state.isMirrored })),
+  setMirrored: (isMirrored) => set({ isMirrored }),
 }));
 
 export { useUIStore };
