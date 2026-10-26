@@ -72,7 +72,7 @@ export default function ImageDisplay() {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
                 </svg>
-                Grid Pattern Detected
+                {gridInfo.detected ? 'Grid Pattern Detected' : 'No grid found — downsampled to fit'}
               </h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
@@ -84,18 +84,18 @@ export default function ImageDisplay() {
                 <div>
                   <span className="text-gray-400">Cell size:</span>
                   <span className="ml-2 text-gray-200 font-medium">
-                    {gridInfo.cell_width} × {gridInfo.cell_height}px
+                    {+gridInfo.cell_width.toFixed(2)} × {+gridInfo.cell_height.toFixed(2)}px
                   </span>
                 </div>
-                {(gridInfo.offset_x > 0 || gridInfo.offset_y > 0) && (
+                {(gridInfo.offset_x !== 0 || gridInfo.offset_y !== 0) && (
                   <div>
                     <span className="text-gray-400">Offset:</span>
                     <span className="ml-2 text-gray-200 font-medium">
-                      {gridInfo.offset_x} × {gridInfo.offset_y}px
+                      {+gridInfo.offset_x.toFixed(2)} × {+gridInfo.offset_y.toFixed(2)}px
                     </span>
                   </div>
                 )}
-                <div className={gridInfo.offset_x > 0 || gridInfo.offset_y > 0 ? 'col-span-1' : 'col-span-2'}>
+                <div className={gridInfo.offset_x !== 0 || gridInfo.offset_y !== 0 ? 'col-span-1' : 'col-span-2'}>
                   <span className="text-gray-400">Confidence:</span>
                   <span className="ml-2 text-gray-200 font-medium">
                     {gridInfo.confidence.toFixed(0)}%

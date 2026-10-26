@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { loadImage, extractPixels, extractPixelsWithGrid, detectGridSize, validateImageFile, validateImageDimensions } from '../services/imageProcessor';
-import { mapPixelsToBeads, createBeadGrid } from '../services/colorMapper';
+import { loadImage, extractPixelsWithGrid, detectGridSize, validateImageFile } from '../services/imageProcessor';
+import { createBeadGrid } from '../services/colorMapper';
 import { detectBackground } from '../services/backgroundDetector';
 import { useUIStore } from './uiStore';
+import usePaletteStore from './paletteStore';
 import { exportProject as exportProjectFile, importProject as importProjectFile } from '../services/projectExporter';
 
 const useProjectStore = create(
@@ -51,7 +52,7 @@ const useProjectStore = create(
 
   setParsedPixels: (pixels) => set({ parsedPixels: pixels }),
 
-  // Upload image (detection only, no processing)
+  // Upload image: detect the grid, then process with it
   uploadImage: async (file) => {
     const { setLoading, setError, clearError } = useUIStore.getState();
 
@@ -68,57 +69,35 @@ const useProjectStore = create(
       // Create preview URL
       const preview = URL.createObjectURL(file);
 
-      // Validate dimensions and detect grid if needed
-      const dimCheck = validateImageDimensions(img);
-      let gridSize = 1;
-      let gridInfo = null;
-      let requiresConfirmation = false;
+      // Detect the pixel grid on every image (upscaled art of any size).
+      const detection = detectGridSize(img);
+      let { cellWidth, cellHeight, offsetX, offsetY, cols, rows } = detection;
+      let confidence = detection.confidence;
 
-      if (!dimCheck.valid) {
-        console.warn(dimCheck.message);
-        requiresConfirmation = true;
-
-        // Detect grid size and offset for large images
-        const detection = detectGridSize(img);
-        gridSize = detection.gridSize;
-        let offsetX = detection.offsetX;
-        let offsetY = detection.offsetY;
-
-        // Force downsampling if image is very large and no grid detected
-        if (gridSize === 1) {
-          const pixels = img.width * img.height;
-          if (pixels > 200 * 200) {
-            // Estimate a reasonable grid size to get under 200x200
-            const targetSize = 150;
-            gridSize = Math.max(
-              Math.ceil(img.width / targetSize),
-              Math.ceil(img.height / targetSize)
-            );
-            offsetX = 0;
-            offsetY = 0;
-            console.log(`⚠ Forcing grid size ${gridSize} to reduce from ${img.width}x${img.height} to ~${Math.floor(img.width/gridSize)}x${Math.floor(img.height/gridSize)}`);
-          }
-        }
-
-        const gridCols = Math.floor((img.width - offsetX) / gridSize);
-        const gridRows = Math.floor((img.height - offsetY) / gridSize);
-
-        gridInfo = {
-          detected_grid_size: gridSize,
-          cell_width: gridSize,
-          cell_height: gridSize,
-          offset_x: offsetX,
-          offset_y: offsetY,
-          grid_cols: gridCols,
-          grid_rows: gridRows,
-          confidence: gridSize > 1 ? 95 : 0,
-          original_width: img.width,
-          original_height: img.height,
-          requires_confirmation: true
-        };
+      // No grid found on a big image: downsample to ~150 cells so it stays workable.
+      if (!detection.detected && img.width * img.height > 200 * 200) {
+        cellWidth = cellHeight = Math.max(img.width, img.height) / 150;
+        offsetX = offsetY = 0;
+        cols = Math.floor(img.width / cellWidth);
+        rows = Math.floor(img.height / cellHeight);
+        confidence = 0;
       }
 
-      // Update store (no pixel processing yet for large images)
+      const gridInfo = cellWidth > 1 || cellHeight > 1 ? {
+        cell_width: cellWidth,
+        cell_height: cellHeight,
+        offset_x: offsetX,
+        offset_y: offsetY,
+        grid_cols: cols,
+        grid_rows: rows,
+        confidence: Math.round(confidence * 100),
+        detected: detection.detected,
+        original_width: img.width,
+        original_height: img.height,
+        // Shows the adjustment panel so the grid can be nudged after the fact
+        requires_confirmation: true,
+      } : null;
+
       set({
         uploadedImage: {
           preview,
@@ -127,15 +106,12 @@ const useProjectStore = create(
           format: file.type.split('/')[1] || 'unknown',
         },
         originalImage: file,
-        parsedPixels: requiresConfirmation ? null : null, // Will be set by processImage
+        parsedPixels: null, // set by processImage
         colorMapping: {},
         gridInfo,
       });
 
-      // Auto-process small images
-      if (!requiresConfirmation) {
-        await get().processImage();
-      }
+      await get().processImage();
 
       return { width: img.width, height: img.height };
     } catch (error) {
@@ -170,8 +146,8 @@ const useProjectStore = create(
 
       if (gridParams) {
         // Use custom parameters
-        cellWidth = gridParams.cellWidth || gridParams.gridSize || 1;
-        cellHeight = gridParams.cellHeight || gridParams.gridSize || cellWidth;
+        cellWidth = gridParams.cellWidth || 1;
+        cellHeight = gridParams.cellHeight || cellWidth;
         offsetX = gridParams.offsetX || 0;
         offsetY = gridParams.offsetY || 0;
       } else {
@@ -184,16 +160,12 @@ const useProjectStore = create(
 
       console.log('Processing image with grid parameters:', { cellWidth, cellHeight, offsetX, offsetY });
 
-      // Extract pixels (with grid downsampling if needed)
-      const { width, height, grid, alphaData } = (cellWidth > 1 || cellHeight > 1)
-        ? extractPixelsWithGrid(img, cellWidth, cellHeight, offsetX, offsetY)
-        : extractPixels(img);
+      const { width, height, grid, alphaData } = extractPixelsWithGrid(img, cellWidth, cellHeight, offsetX, offsetY);
 
-      // Create bead grid (2D array of bead IDs)
-      const beadGrid = createBeadGrid(grid);
-
-      // Map to Perler beads
-      const colorMapping = mapPixelsToBeads(grid);
+      // Match against the selected palettes; ColorPalette refines this mapping afterwards
+      const { beadGrid, colorMapping } = createBeadGrid(
+        grid, usePaletteStore.getState().getAvailableColors(), get().settings.colorMatchMode
+      );
 
       // Detect background
       const backgroundMask = detectBackground(beadGrid, alphaData, width, height);
@@ -295,7 +267,7 @@ const useProjectStore = create(
       // Regenerate beadGrid if missing (for backward compatibility)
       let beadGrid = projectData.beadGrid;
       if (!beadGrid && projectData.parsedPixels) {
-        beadGrid = createBeadGrid(projectData.parsedPixels.grid);
+        beadGrid = createBeadGrid(projectData.parsedPixels.grid, usePaletteStore.getState().getAvailableColors()).beadGrid;
       }
 
       // Load into store

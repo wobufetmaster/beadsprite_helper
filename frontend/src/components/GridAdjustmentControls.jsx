@@ -9,13 +9,13 @@ export default function GridAdjustmentControls() {
     processImage: state.processImage
   }));
 
-  const [isAdjusting, setIsAdjusting] = useState(true);
+  // Confident detections start collapsed; the pattern is already processed with them
+  const [isAdjusting, setIsAdjusting] = useState(!(gridInfo?.detected && gridInfo.confidence >= 60));
   const [cellWidth, setCellWidth] = useState(gridInfo?.cell_width || 16);
   const [cellHeight, setCellHeight] = useState(gridInfo?.cell_height || 16);
   const [offsetX, setOffsetX] = useState(gridInfo?.offset_x || 0);
   const [offsetY, setOffsetY] = useState(gridInfo?.offset_y || 0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
   const canvasRef = useRef(null);
 
   // Update local state when gridInfo changes
@@ -25,6 +25,7 @@ export default function GridAdjustmentControls() {
       setCellHeight(gridInfo.cell_height);
       setOffsetX(gridInfo.offset_x || 0);
       setOffsetY(gridInfo.offset_y || 0);
+      setIsAdjusting(!(gridInfo.detected && gridInfo.confidence >= 60));
     }
   }, [gridInfo]);
 
@@ -75,18 +76,18 @@ export default function GridAdjustmentControls() {
       }
 
       // Highlight the offset with red lines
-      if (offsetX > 0 || offsetY > 0) {
+      if (offsetX !== 0 || offsetY !== 0) {
         ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
         ctx.lineWidth = 2;
 
-        if (offsetX > 0) {
+        if (offsetX !== 0) {
           ctx.beginPath();
           ctx.moveTo(scaledOffsetX, 0);
           ctx.lineTo(scaledOffsetX, displayHeight);
           ctx.stroke();
         }
 
-        if (offsetY > 0) {
+        if (offsetY !== 0) {
           ctx.beginPath();
           ctx.moveTo(0, scaledOffsetY);
           ctx.lineTo(displayWidth, scaledOffsetY);
@@ -139,30 +140,15 @@ export default function GridAdjustmentControls() {
 
   const handleReset = () => {
     if (!gridInfo) return;
-
-    console.log('Reset clicked. Current values:', { cellWidth, cellHeight, offsetX, offsetY });
-    console.log('Resetting to gridInfo:', {
-      cell_width: gridInfo.cell_width,
-      cell_height: gridInfo.cell_height,
-      offset_x: gridInfo.offset_x,
-      offset_y: gridInfo.offset_y
-    });
-
-    // Reset to detected grid values
     setCellWidth(gridInfo.cell_width);
     setCellHeight(gridInfo.cell_height);
     setOffsetX(gridInfo.offset_x || 0);
     setOffsetY(gridInfo.offset_y || 0);
-
-    // Force re-render of inputs by changing key (use setTimeout to ensure state updates first)
-    setTimeout(() => {
-      setResetKey(prev => prev + 1);
-      console.log('ResetKey incremented');
-    }, 0);
   };
 
-  const gridCols = Math.floor((uploadedImage.width - offsetX) / cellWidth);
-  const gridRows = Math.floor((uploadedImage.height - offsetY) / cellHeight);
+  // Same rounding as core/grid.js makeGrid: keep a trailing cell if half of it is visible
+  const gridCols = Math.max(1, Math.floor((uploadedImage.width - offsetX) / cellWidth + 0.5));
+  const gridRows = Math.max(1, Math.floor((uploadedImage.height - offsetY) / cellHeight + 0.5));
 
   return (
     <div className="w-full">
@@ -191,7 +177,7 @@ export default function GridAdjustmentControls() {
               </div>
               <div className="mt-2 text-xs text-gray-400 text-center">
                 <span className="text-cyan-400">Cyan lines</span> = cell boundaries
-                {(offsetX > 0 || offsetY > 0) && (
+                {(offsetX !== 0 || offsetY !== 0) && (
                   <span className="ml-3">
                     <span className="text-red-400">Red lines</span> = grid start (offset)
                   </span>
@@ -199,68 +185,12 @@ export default function GridAdjustmentControls() {
               </div>
             </div>
 
-            {/* Cell Size Controls */}
+            {/* Cell size and offset (fractional — upscaled art is often not a whole-number scale) */}
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cell Width: {cellWidth}px
-                </label>
-                <input
-                  key={`cellWidth-${resetKey}`}
-                  type="range"
-                  min={1}
-                  max={100}
-                  value={cellWidth}
-                  onChange={(e) => setCellWidth(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cell Height: {cellHeight}px
-                </label>
-                <input
-                  key={`cellHeight-${resetKey}`}
-                  type="range"
-                  min={1}
-                  max={100}
-                  value={cellHeight}
-                  onChange={(e) => setCellHeight(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* Offset Controls */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Offset X: {offsetX}px
-                </label>
-                <input
-                  key={`offsetX-${resetKey}`}
-                  type="range"
-                  min={0}
-                  max={cellWidth * 2}
-                  value={offsetX}
-                  onChange={(e) => setOffsetX(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Offset Y: {offsetY}px
-                </label>
-                <input
-                  key={`offsetY-${resetKey}`}
-                  type="range"
-                  min={0}
-                  max={cellHeight * 2}
-                  value={offsetY}
-                  onChange={(e) => setOffsetY(parseInt(e.target.value))}
-                  className="w-full"
-                />
-              </div>
+              <GridSlider label="Cell Width" value={cellWidth} min={1} max={100} onChange={setCellWidth} />
+              <GridSlider label="Cell Height" value={cellHeight} min={1} max={100} onChange={setCellHeight} />
+              <GridSlider label="Offset X" value={offsetX} min={-cellWidth / 2} max={cellWidth} onChange={setOffsetX} />
+              <GridSlider label="Offset Y" value={offsetY} min={-cellHeight / 2} max={cellHeight} onChange={setOffsetY} />
             </div>
 
             {/* Preview Info */}
@@ -271,7 +201,7 @@ export default function GridAdjustmentControls() {
                   {gridCols} × {gridRows} cells
                 </span>
                 <span className="ml-4 text-gray-400">
-                  ({cellWidth}×{cellHeight}px cells, {offsetX}×{offsetY}px offset)
+                  ({+cellWidth.toFixed(2)}×{+cellHeight.toFixed(2)}px cells, {+offsetX.toFixed(2)}×{+offsetY.toFixed(2)}px offset)
                 </span>
               </div>
             </div>
@@ -295,6 +225,36 @@ export default function GridAdjustmentControls() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function GridSlider({ label, value, min, max, onChange }) {
+  const set = (v) => {
+    const n = parseFloat(v);
+    if (!Number.isNaN(n)) onChange(n);
+  };
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-sm font-medium text-gray-300">{label}</label>
+        <input
+          type="number"
+          step={0.01}
+          value={+value.toFixed(3)}
+          onChange={(e) => set(e.target.value)}
+          className="w-24 px-2 py-0.5 text-sm bg-gray-900 border border-gray-600 rounded text-gray-200 text-right"
+        />
+      </div>
+      <input
+        type="range"
+        step={0.01}
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="w-full"
+      />
     </div>
   );
 }

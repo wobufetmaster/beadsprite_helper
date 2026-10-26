@@ -401,7 +401,7 @@ export default function PixelGridDisplay() {
           <span className="ml-2 text-gray-400">{width} × {height} pixels</span>
           {gridInfo && (
             <span className="ml-4 text-green-400">
-              (Extracted from {gridInfo.cell_width}×{gridInfo.cell_height}px cells)
+              (Extracted from {+gridInfo.cell_width.toFixed(2)}×{+gridInfo.cell_height.toFixed(2)}px cells)
             </span>
           )}
           {hasMappedColors && showMappedColors && (

@@ -1,0 +1,5 @@
+#!/bin/sh
+# Run the beadsprite CLI from anywhere: ./beadsprite image.jpg [options]
+DIR="$(cd "$(dirname "$0")" && pwd)/frontend"
+[ -d "$DIR/node_modules" ] || (cd "$DIR" && npm install --silent)
+exec node "$DIR/cli/beadsprite.js" "$@"
